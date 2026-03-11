@@ -91,6 +91,15 @@ function tryRebalanceAssignments(
 ): void {
   const maxIterations = 80
 
+  function getOptimizedDistance(
+    vehicle: VehicleOfferRecord,
+    members: EventMemberRecord[]
+  ): number | null {
+    const optimizedMembers = optimizeMembersForVehicle(event, vehicle, members)
+    const metrics = calculateAssignmentMetrics(event, vehicle, optimizedMembers)
+    return metrics.totalDistanceMeters
+  }
+
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
     let bestMove:
       | {
@@ -115,13 +124,11 @@ function tryRebalanceAssignments(
         const receiverOrigin = getVehicleOriginPoint(event, receiver.vehicle)
         if (!donorOrigin || !receiverOrigin) continue
 
-        const donorCurrentMetrics = calculateAssignmentMetrics(
-          event,
+        const donorCurrentDistance = getOptimizedDistance(
           donor.vehicle,
           donor.members
         )
-        const receiverCurrentMetrics = calculateAssignmentMetrics(
-          event,
+        const receiverCurrentDistance = getOptimizedDistance(
           receiver.vehicle,
           receiver.members
         )
@@ -131,24 +138,22 @@ function tryRebalanceAssignments(
           const donorNextMembers = donor.members.filter((_, index) => index !== memberIndex)
           const receiverNextMembers = [...receiver.members, movingMember]
 
-          const donorNextMetrics = calculateAssignmentMetrics(
-            event,
+          const donorNextDistance = getOptimizedDistance(
             donor.vehicle,
             donorNextMembers
           )
-          const receiverNextMetrics = calculateAssignmentMetrics(
-            event,
+          const receiverNextDistance = getOptimizedDistance(
             receiver.vehicle,
             receiverNextMembers
           )
 
           const currentTotal =
-            (donorCurrentMetrics.totalDistanceMeters ?? 0) +
-            (receiverCurrentMetrics.totalDistanceMeters ?? 0)
+            (donorCurrentDistance ?? 0) +
+            (receiverCurrentDistance ?? 0)
 
           const nextTotal =
-            (donorNextMetrics.totalDistanceMeters ?? 0) +
-            (receiverNextMetrics.totalDistanceMeters ?? 0)
+            (donorNextDistance ?? 0) +
+            (receiverNextDistance ?? 0)
 
           const improvement = currentTotal - nextTotal
 
