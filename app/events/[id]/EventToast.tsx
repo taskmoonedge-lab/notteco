@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type EventToastProps = {
   notice?: string
@@ -61,11 +61,13 @@ function getToastConfig(notice?: string): ToastConfig | null {
 }
 
 export default function EventToast({ notice }: EventToastProps) {
-  const toastConfig = useMemo(() => getToastConfig(notice), [notice])
+  const toastConfig = getToastConfig(notice)
   const [visible, setVisible] = useState(true)
 
   useEffect(() => {
-    if (!toastConfig) return
+    const currentToast = getToastConfig(notice)
+
+    if (!currentToast) return
 
     const showTimer = window.setTimeout(() => {
       setVisible(true)
@@ -73,13 +75,13 @@ export default function EventToast({ notice }: EventToastProps) {
 
     const hideTimer = window.setTimeout(() => {
       setVisible(false)
-    }, toastConfig.duration)
+    }, currentToast.duration)
 
     return () => {
       window.clearTimeout(showTimer)
       window.clearTimeout(hideTimer)
     }
-  }, [notice, toastConfig])
+  }, [notice])
 
   if (!toastConfig || !visible) {
     return null
