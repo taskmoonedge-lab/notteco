@@ -573,8 +573,8 @@ export default async function ParticipantEventPage({
               </p>
             </div>
           ) : (
-            <ul className="mt-6 grid gap-4 xl:grid-cols-2">
-              {safeRoutePlans.map((plan) => {
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {safeRoutePlans.map((plan, idx) => {
                 const orderedNames = plan.ordered_member_names ?? plan.member_names ?? []
                 const orderedIds = plan.ordered_member_ids ?? []
                 const stops = plan.route_stops ?? []
@@ -592,66 +592,60 @@ export default async function ParticipantEventPage({
                 })
 
                 return (
-                  <li
-                    key={plan.id}
-                    className="overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 shadow-sm"
-                  >
-                    <div className="border-b border-slate-200 px-6 py-5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
-                              {(plan.member_names ?? []).length}人
-                            </span>
-                            <span className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
-                              {plan.driver_name || '運転手未設定'}
-                            </span>
-                          </div>
-
-                          {event.case_type === 'noriai' ? (
-                            <div className="mt-4 grid gap-2 rounded-xl border border-teal-200 bg-teal-50 p-3 sm:grid-cols-2">
-                              <p className="text-xs font-semibold text-teal-800">出発: <span className="text-sm font-extrabold">{formatClock(timeline?.departureAt)}</span></p>
-                              <p className="text-xs font-semibold text-teal-800">到着予定: <span className="text-sm font-extrabold">{formatClock(timeline?.arrivalAt)}</span></p>
-                            </div>
-                          ) : null}
-
-                          <div className="mt-4">
-                            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                              搭乗者
-                            </p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {orderedNames.map((name, index) => {
-                                const memberId = orderedIds[index]
-                                const pickupAt = memberId ? timeline?.pickupTimesByMemberId[memberId] : null
-
-                                return (
-                                  <span
-                                    key={`${plan.id}-member-${index}`}
-                                    className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
-                                  >
-                                    {name}{event.case_type === 'noriai' ? ` (${formatClock(pickupAt ?? null)})` : ''}
-                                  </span>
-                                )
-                              })}
-                            </div>
-                          </div>
+                  <details key={plan.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <summary className="cursor-pointer px-5 py-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-2">
+                          <p className="font-bold text-slate-900">🚗 車両 {idx + 1}</p>
+                          <p className="text-sm text-slate-600">運転手: {plan.driver_name ?? '不明'}</p>
+                          <p className="text-sm font-semibold text-slate-800">搭乗者 {orderedNames.length}名</p>
                         </div>
-
-                        <div className="text-right">
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                            移動時間 / 距離
-                          </p>
-                          <p className="mt-2 text-sm font-semibold text-slate-900">
-                            {formatDistance(plan.total_distance_meters)}
-                          </p>
-                          <p className="mt-1 text-sm text-slate-500">
-                            {formatDuration(plan.total_duration_seconds)}
-                          </p>
+                        <div className="text-sm text-slate-700 sm:text-right">
+                          <p>{formatDistance(plan.total_distance_meters)}</p>
+                          <p className="mt-1">{formatDuration(plan.total_duration_seconds)}</p>
                         </div>
                       </div>
-                    </div>
+                    </summary>
 
-                    <div className="px-6 py-5">
+                    <div className="space-y-4 border-t border-slate-100 px-5 py-4 text-sm text-slate-700">
+                      {event.case_type === 'noriai' ? (
+                        <div className="grid gap-3 rounded-2xl border border-teal-200 bg-teal-50 p-4 sm:grid-cols-2">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">運転手の出発時刻</p>
+                            <p className="mt-1 text-lg font-extrabold text-teal-900">{formatClock(timeline?.departureAt)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">目的地到着予定</p>
+                            <p className="mt-1 text-lg font-extrabold text-teal-900">{formatClock(timeline?.arrivalAt)}</p>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div>
+                        <p className="font-semibold text-slate-800">搭乗順{event.case_type === 'noriai' ? '（ピックアップ時刻）' : ''}</p>
+                        {orderedNames.length > 0 ? (
+                          <ol className="mt-2 space-y-2">
+                            {orderedNames.map((name, index) => {
+                              const memberId = orderedIds[index]
+                              const pickupAt = memberId ? timeline?.pickupTimesByMemberId[memberId] : null
+
+                              return (
+                                <li key={`${plan.id}-member-${index}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                  <span className="font-medium text-slate-800">{index + 1}. {name}</span>
+                                  {event.case_type === 'noriai' ? (
+                                    <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-teal-700">
+                                      ピックアップ {formatClock(pickupAt ?? null)}
+                                    </span>
+                                  ) : null}
+                                </li>
+                              )
+                            })}
+                          </ol>
+                        ) : (
+                          <p className="mt-2 text-sm text-slate-500">搭乗者が割り当てられていません。</p>
+                        )}
+                      </div>
+
                       {stops.length > 0 ? (
                         <ol className="space-y-0">
                           {stops.map((stop, index) => (
@@ -660,14 +654,10 @@ export default async function ParticipantEventPage({
                                 <span className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full border border-teal-200 bg-teal-50 text-xs font-bold text-teal-700">
                                   {index + 1}
                                 </span>
-                                {index !== stops.length - 1 ? (
-                                  <span className="my-1 h-10 w-px bg-slate-200" />
-                                ) : null}
+                                {index !== stops.length - 1 ? <span className="my-1 h-10 w-px bg-slate-200" /> : null}
                               </div>
                               <div className="pb-4 pt-1">
-                                <p className="text-sm font-medium leading-6 text-slate-800">
-                                  {stop}
-                                </p>
+                                <p className="text-sm font-medium leading-6 text-slate-800">{stop}</p>
                               </div>
                             </li>
                           ))}
@@ -676,10 +666,7 @@ export default async function ParticipantEventPage({
                         <p className="text-sm text-slate-500">ルート未設定</p>
                       )}
 
-                      <div className="mt-4 flex items-center justify-between gap-4 border-t border-slate-200 pt-4">
-                        <p className="text-xs text-slate-400">
-                          保存日時: {formatCreatedAt(plan.created_at)}
-                        </p>
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
                         {mapUrl ? (
                           <a
                             href={mapUrl}
@@ -690,14 +677,15 @@ export default async function ParticipantEventPage({
                             Google Mapsで開く
                           </a>
                         ) : (
-                          <span className="text-sm text-slate-400">Mapsリンクなし</span>
+                          <span className="text-xs text-slate-400">Google Mapsリンクを生成できませんでした</span>
                         )}
+                        <span className="text-xs text-slate-400">保存日時: {formatCreatedAt(plan.created_at)}</span>
                       </div>
                     </div>
-                  </li>
+                  </details>
                 )
               })}
-            </ul>
+            </div>
           )}
         </section>
 
