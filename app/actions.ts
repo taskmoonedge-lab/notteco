@@ -231,6 +231,16 @@ async function markReplanRequiredAndRedirect(
   eventId: string,
   returnToPath?: string
 ): Promise<void> {
+  const { error: updateError } = await supabase
+    .from('events')
+    .update({ plan_is_latest: false })
+    .eq('id', eventId)
+
+  if (updateError) {
+    console.error('配車結果最新フラグ更新エラー:', updateError.message)
+    return
+  }
+
   const nextPath = returnToPath ?? `/events/${eventId}`
 
   revalidatePath(`/events/${eventId}`)
@@ -302,6 +312,7 @@ export async function createEvent(formData: FormData): Promise<void> {
         destination_lng: destinationCoords.lng,
         destination_place_id: destinationPlaceId,
         event_at: eventAt,
+        plan_is_latest: false,
       },
     ])
     .select('id')
@@ -1041,6 +1052,16 @@ export async function executePlan(formData: FormData): Promise<void> {
   }
 
   if (optimizedAssignments.length === 0) {
+    const { error: updateError } = await supabase
+      .from('events')
+      .update({ plan_is_latest: true })
+      .eq('id', eventId)
+
+    if (updateError) {
+      console.error('配車結果最新フラグ更新エラー:', updateError.message)
+      return
+    }
+
     revalidatePath(`/events/${eventId}`)
     revalidatePath(`/admin/events/${eventId}`)
     revalidatePath(`/e/${eventId}`)
@@ -1075,6 +1096,16 @@ export async function executePlan(formData: FormData): Promise<void> {
     return
   }
 
+  const { error: updateError } = await supabase
+    .from('events')
+    .update({ plan_is_latest: true })
+    .eq('id', eventId)
+
+  if (updateError) {
+    console.error('配車結果最新フラグ更新エラー:', updateError.message)
+    return
+  }
+
   revalidatePath(`/events/${eventId}`)
   revalidatePath(`/admin/events/${eventId}`)
   revalidatePath(`/e/${eventId}`)
@@ -1097,6 +1128,16 @@ export async function deleteRoutePlans(formData: FormData): Promise<void> {
 
   if (error) {
     console.error('配車結果削除エラー:', error.message)
+    return
+  }
+
+  const { error: updateError } = await supabase
+    .from('events')
+    .update({ plan_is_latest: false })
+    .eq('id', eventId)
+
+  if (updateError) {
+    console.error('配車結果最新フラグ更新エラー:', updateError.message)
     return
   }
 

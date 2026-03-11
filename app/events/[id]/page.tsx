@@ -92,7 +92,15 @@ function toDateTimeLocalValue(value: string | null | undefined): string {
   return offsetDate.toISOString().slice(0, 16)
 }
 
-function PlanStatusBanner({ routePlans, notice }: { routePlans: RoutePlanRecord[]; notice?: string }) {
+function PlanStatusBanner({
+  routePlans,
+  notice,
+  planIsLatest,
+}: {
+  routePlans: RoutePlanRecord[]
+  notice?: string
+  planIsLatest: boolean
+}) {
   const isReplanRequired = notice === 'replan_required' || notice === 'replan'
 
   if (isReplanRequired) {
@@ -111,6 +119,15 @@ function PlanStatusBanner({ routePlans, notice }: { routePlans: RoutePlanRecord[
       <section className="rounded-3xl border border-slate-200 bg-slate-100 px-6 py-5 shadow-sm">
         <p className="text-base font-extrabold text-slate-900">まだ配車されていません。</p>
         <p className="mt-2 text-sm text-slate-700">搭乗者・運転手・共通基点を確認したら「配車する」を押してください。</p>
+      </section>
+    )
+  }
+
+  if (!planIsLatest) {
+    return (
+      <section className="rounded-3xl border-2 border-amber-300 bg-amber-50 px-6 py-5 shadow-sm">
+        <p className="text-base font-extrabold text-amber-900">現在の配車結果は最新ではありません。</p>
+        <p className="mt-2 text-sm text-amber-800">イベント・参加者・運転手情報に変更があります。再度「配車する」を押して更新してください。</p>
       </section>
     )
   }
@@ -206,7 +223,11 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
           </form>
         </div>
 
-        <PlanStatusBanner routePlans={safeRoutePlans} notice={notice} />
+        <PlanStatusBanner
+          routePlans={safeRoutePlans}
+          notice={notice}
+          planIsLatest={Boolean(event.plan_is_latest)}
+        />
 
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="grid lg:grid-cols-[1.15fr_0.85fr]">

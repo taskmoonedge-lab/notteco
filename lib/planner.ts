@@ -11,6 +11,7 @@ export type EventRecord = {
   id: string
   title: string
   case_type: string
+  plan_is_latest?: boolean | null
   destination_text: string | null
   destination_lat: number | null
   destination_lng: number | null
