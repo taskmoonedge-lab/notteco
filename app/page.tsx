@@ -2,6 +2,7 @@ import Link from 'next/link'
 import PlaceSearchSelectInput from '../components/PlaceSearchSelectInput'
 import { supabase } from '../lib/supabase'
 import { createEvent } from './actions'
+import { getEventOwnerId } from '../lib/eventOwner'
 
 type EventListItem = {
   id: string
@@ -27,11 +28,16 @@ function formatEventAt(value: string | null): string {
 }
 
 export default async function Home() {
-  const { data: events, error } = await supabase
+  const ownerId = await getEventOwnerId()
+
+  const eventsQuery = supabase
     .from('events')
     .select('*')
     .order('created_at', { ascending: false })
-    .returns<EventListItem[]>()
+
+  const { data: events, error } = ownerId
+    ? await eventsQuery.eq('owner_id', ownerId).returns<EventListItem[]>()
+    : { data: [], error: null }
 
   const safeEvents = events ?? []
 
