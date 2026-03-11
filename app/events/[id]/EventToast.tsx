@@ -62,12 +62,11 @@ function getToastConfig(notice?: string): ToastConfig | null {
 
 export default function EventToast({ notice }: EventToastProps) {
   const toastConfig = getToastConfig(notice)
+  const toastDuration = toastConfig?.duration
   const [visible, setVisible] = useState(true)
 
   useEffect(() => {
-    const currentToast = getToastConfig(notice)
-
-    if (!currentToast) return
+    if (!toastDuration) return
 
     const showTimer = window.setTimeout(() => {
       setVisible(true)
@@ -75,13 +74,13 @@ export default function EventToast({ notice }: EventToastProps) {
 
     const hideTimer = window.setTimeout(() => {
       setVisible(false)
-    }, currentToast.duration)
+    }, toastDuration)
 
     return () => {
       window.clearTimeout(showTimer)
       window.clearTimeout(hideTimer)
     }
-  }, [notice])
+  }, [notice, toastDuration])
 
   if (!toastConfig || !visible) {
     return null
