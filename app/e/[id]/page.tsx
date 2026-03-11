@@ -149,10 +149,8 @@ export default async function ParticipantEventPage({
     (sum, vehicle) => sum + vehicle.capacity,
     0,
   );
-  const eventBaseLabel =
-    event.case_type === "noriai" ? "共通目的地" : "共通基点";
-  const eventTimeLabel =
-    event.case_type === "noriai" ? "目的地到着希望時刻" : "集合時刻";
+  const eventBaseLabel = "共通目的地";
+  const eventTimeLabel = "目標到着時間";
   const memberStartLabel =
     event.case_type === "noriai"
       ? "出発地点"
@@ -168,6 +166,7 @@ export default async function ParticipantEventPage({
   const assignedMembersCount = safeRoutePlans.length
     ? (safeRoutePlans[0]?.ordered_member_ids?.length ?? 0)
     : 0;
+  const totalParticipants = safeMembers.length + safeVehicleOffers.length;
   const unassignedMembersCount = Math.max(
     safeMembers.length - assignedMembersCount,
     0,
@@ -236,13 +235,13 @@ export default async function ParticipantEventPage({
               </div>
             </div>
 
-            <div className="grid gap-3 p-8">
+            <div className="grid grid-cols-2 gap-3 p-8">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <p className="text-xs font-medium text-slate-500">
                   イベント参加者
                 </p>
                 <p className="mt-1 text-lg font-bold text-slate-900">
-                  {safeMembers.length}人
+                  {totalParticipants}人
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
@@ -251,27 +250,27 @@ export default async function ParticipantEventPage({
                   {safeVehicleOffers.length}台
                 </p>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4">
+                <p className="text-xs font-medium text-rose-500">未割当</p>
+                <p className="mt-1 text-lg font-bold text-rose-600">
+                  {unassignedMembersCount}人
+                </p>
+              </div>
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+                <p className="text-xs font-medium text-emerald-600">
+                  配車済み参加者
+                </p>
+                <p className="mt-1 text-lg font-bold text-emerald-700">
+                  {assignedMembersCount}人
+                </p>
+              </div>
+              <div className="col-span-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <p className="text-xs font-medium text-slate-500">総定員</p>
                 <p className="mt-1 text-lg font-bold text-slate-900">
                   {totalCapacity}人
                 </p>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-xs font-medium text-slate-500">未割当</p>
-                <p className="mt-1 text-lg font-bold text-slate-900">
-                  {unassignedMembersCount}人
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-xs font-medium text-slate-500">
-                  配車済み参加者
-                </p>
-                <p className="mt-1 text-lg font-bold text-slate-900">
-                  {assignedMembersCount}人
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="col-span-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <p className="text-xs font-medium text-slate-500">最終更新</p>
                 <p className="mt-1 text-lg font-bold text-slate-900">
                   {formatCreatedAt(event.created_at)}
