@@ -70,6 +70,19 @@ function formatCreatedAt(value: string | null): string {
   return new Date(value).toLocaleString('ja-JP')
 }
 
+function formatEventAt(value: string | null): string {
+  if (!value) return '未設定'
+  return new Date(value).toLocaleString('ja-JP')
+}
+
+function toDateTimeLocalValue(value: string | null | undefined): string {
+  if (!value) return ''
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ''
+  const offsetDate = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000)
+  return offsetDate.toISOString().slice(0, 16)
+}
+
 function PlanStatusBanner({ routePlans, notice }: { routePlans: RoutePlanRecord[]; notice?: string }) {
   const isReplanRequired = notice === 'replan_required' || notice === 'replan'
 
@@ -144,6 +157,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
   const { assignments, unassignedMembers } = buildSimplePlan(event, safeMembers, safeVehicleOffers)
 
   const eventBaseLabel = event.case_type === 'noriai' ? '共通目的地' : '共通基点'
+  const eventTimeLabel = event.case_type === 'noriai' ? '到着時間' : '集合時間'
   const memberStartLabel =
     event.case_type === 'noriai'
       ? '出発地点'
@@ -154,7 +168,6 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
       ? '運転手の出発地点'
       : '出発地点（共通基点と異なる場合のみ編集してください）'
 
-  const usedVehicles = assignments.filter((assignment) => assignment.members.length > 0).length
   const totalCapacity = safeVehicleOffers.reduce((sum, vehicle) => sum + vehicle.capacity, 0)
   const assignedMembersCount = assignments.reduce((sum, assignment) => sum + assignment.members.length, 0)
   const adminPath = `/admin/events/${event.id}`
@@ -198,17 +211,18 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                   <p className="mt-2 text-sm font-medium text-slate-800">{event.destination_text || '未設定'}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">作成日時</p>
-                  <p className="mt-2 text-sm font-medium text-slate-800">{formatCreatedAt(event.created_at)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{eventTimeLabel}</p>
+                  <p className="mt-2 text-sm font-medium text-slate-800">{formatEventAt(event.event_at)}</p>
                 </div>
               </div>
             </div>
 
             <div className="grid gap-3 p-8">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">搭乗者</p><p className="mt-1 text-lg font-bold text-slate-900">{assignedMembersCount} / {safeMembers.length}人</p></div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">運転手</p><p className="mt-1 text-lg font-bold text-slate-900">{usedVehicles} / {safeVehicleOffers.length}台</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">イベント参加者</p><p className="mt-1 text-lg font-bold text-slate-900">{safeMembers.length}人</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">車</p><p className="mt-1 text-lg font-bold text-slate-900">{safeVehicleOffers.length}台</p></div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">総定員</p><p className="mt-1 text-lg font-bold text-slate-900">{totalCapacity}人</p></div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">未割り当て</p><p className="mt-1 text-lg font-bold text-slate-900">{unassignedMembers.length}人</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">未割当</p><p className="mt-1 text-lg font-bold text-slate-900">{unassignedMembers.length}人</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">配車済み参加者</p><p className="mt-1 text-lg font-bold text-slate-900">{assignedMembersCount}人</p></div>
             </div>
           </div>
         </section>
@@ -321,6 +335,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                 <input type="hidden" name="eventId" value={event.id} /><input type="hidden" name="returnTo" value={adminPath} />
                 <div><label htmlFor="event-title" className="mb-2 block text-sm font-medium text-slate-700">イベント名</label><input id="event-title" name="title" type="text" required defaultValue={event.title} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100" /></div>
                 <PlaceSearchSelectInput label={eventBaseLabel} textName="destinationText" latName="destinationLat" lngName="destinationLng" defaultText={event.destination_text} defaultLat={event.destination_lat} defaultLng={event.destination_lng} placeholder="駅名、店舗名、住所を入力" helperText="入力後に検索を押し、候補から1件選んでください" required />
+                <div><label htmlFor="event-at" className="mb-2 block text-sm font-medium text-slate-700">{eventTimeLabel}</label><input id="event-at" name="eventAt" type="datetime-local" required defaultValue={toDateTimeLocalValue(event.event_at)} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100" /></div>
                 <button type="submit" className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-4 py-3 text-base font-bold text-white transition hover:bg-teal-600">イベント情報を更新する</button>
               </form>
             </details>

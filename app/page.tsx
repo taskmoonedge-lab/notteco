@@ -8,6 +8,7 @@ type EventListItem = {
   title: string
   case_type: string
   destination_text: string | null
+  event_at: string | null
   created_at: string | null
 }
 
@@ -18,6 +19,11 @@ function formatMode(caseType: string): string {
 function formatCreatedAt(value: string | null): string {
   if (!value) return '不明'
   return new Date(value).toLocaleDateString('ja-JP')
+}
+
+function formatEventAt(value: string | null): string {
+  if (!value) return '未設定'
+  return new Date(value).toLocaleString('ja-JP')
 }
 
 export default async function Home() {
@@ -138,6 +144,22 @@ export default async function Home() {
                   required
                 />
 
+                <div>
+                  <label
+                    htmlFor="event-at"
+                    className="mb-2 block text-sm font-medium text-slate-700"
+                  >
+                    ノリアイ: 到着時間 / ソウゲイ: 集合時間
+                  </label>
+                  <input
+                    id="event-at"
+                    name="eventAt"
+                    type="datetime-local"
+                    required
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100"
+                  />
+                </div>
+
                 <button
                   type="submit"
                   className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-4 py-3 text-base font-bold text-white shadow-sm transition hover:bg-teal-600"
@@ -202,6 +224,9 @@ export default async function Home() {
                         <p className="mt-2 text-sm text-slate-600">
                           {event.case_type === 'noriai' ? '目的地' : '基点'}:{' '}
                           {event.destination_text || '未設定'}
+                        </p>
+                        <p className="mt-2 text-sm text-slate-600">
+                          {event.case_type === 'noriai' ? '到着時間' : '集合時間'}: {formatEventAt(event.event_at)}
                         </p>
                       </div>
 

@@ -15,6 +15,7 @@ export type EventRecord = {
   destination_lat: number | null
   destination_lng: number | null
   destination_place_id?: string | null
+  event_at?: string | null
   created_at: string | null
 }
 
