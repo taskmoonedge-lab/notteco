@@ -239,6 +239,19 @@ async function markReplanRequiredAndRedirect(
   redirect(appendNoticeParam(nextPath, 'replan_required'))
 }
 
+async function redirectWithNotice(
+  eventId: string,
+  notice: string,
+  returnToPath?: string
+): Promise<void> {
+  const nextPath = returnToPath ?? `/events/${eventId}`
+
+  revalidatePath(`/events/${eventId}`)
+  revalidatePath(`/admin/events/${eventId}`)
+  revalidatePath(`/e/${eventId}`)
+  redirect(appendNoticeParam(nextPath, notice))
+}
+
 export async function createEvent(formData: FormData): Promise<void> {
   const title = formData.get('title') as string
   const caseType = formData.get('caseType') as string
@@ -498,7 +511,7 @@ export async function createEventMember(formData: FormData): Promise<void> {
   }
 
   const focusPath = appendSearchParam(returnToPath, 'memberId', insertedMember.id)
-  await markReplanRequiredAndRedirect(eventId, focusPath)
+  await redirectWithNotice(eventId, 'member_registered', focusPath)
 }
 
 export async function updateEventMember(formData: FormData): Promise<void> {
@@ -785,8 +798,9 @@ export async function createVehicleOffer(formData: FormData): Promise<void> {
     return
   }
 
-  await markReplanRequiredAndRedirect(
+  await redirectWithNotice(
     eventId,
+    'driver_registered',
     appendSearchParam(returnToPath, 'vehicleOfferId', insertedVehicleOffer.id)
   )
 }
