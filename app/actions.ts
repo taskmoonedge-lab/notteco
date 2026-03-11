@@ -501,11 +501,19 @@ export async function createEventMember(formData: FormData): Promise<void> {
     resolvedStartLng = resolved.lng
   }
 
-  const resolvedDestination = await resolveCoordinatesFromInput(
-    destinationText,
-    destinationLat,
-    destinationLng
-  )
+  const resolvedDestination =
+    eventData.case_type === 'sougei'
+      ? await resolveCoordinatesFromInput(
+          destinationText,
+          destinationLat,
+          destinationLng
+        )
+      : { lat: null, lng: null }
+
+  const nextDestinationText =
+    eventData.case_type === 'sougei' ? destinationText : null
+  const nextDestinationPlaceId =
+    eventData.case_type === 'sougei' ? destinationPlaceId : null
 
   const { data: insertedMember, error } = await supabase
     .from('event_members')
@@ -517,10 +525,10 @@ export async function createEventMember(formData: FormData): Promise<void> {
         start_lat: resolvedStartLat,
         start_lng: resolvedStartLng,
         start_place_id: resolvedStartPlaceId,
-        destination_text: destinationText,
+        destination_text: nextDestinationText,
         destination_lat: resolvedDestination.lat,
         destination_lng: resolvedDestination.lng,
-        destination_place_id: destinationPlaceId,
+        destination_place_id: nextDestinationPlaceId,
       },
     ])
     .select('id')
@@ -657,21 +665,27 @@ export async function updateEventMember(formData: FormData): Promise<void> {
       : startPlaceId ?? null
   }
 
-  const resolvedDestination = await resolveCoordinatesFromInput(
-    destinationText,
-    destinationLat,
-    destinationLng,
-    currentMember?.destination_lat ?? null,
-    currentMember?.destination_lng ?? null,
-    currentMember?.destination_text ?? null
-  )
+  const resolvedDestination =
+    eventData.case_type === 'sougei'
+      ? await resolveCoordinatesFromInput(
+          destinationText,
+          destinationLat,
+          destinationLng,
+          currentMember?.destination_lat ?? null,
+          currentMember?.destination_lng ?? null,
+          currentMember?.destination_text ?? null
+        )
+      : { lat: null, lng: null }
 
-  const nextDestinationPlaceId = isSameLocationText(
-    destinationText,
-    currentMember?.destination_text ?? null
-  )
-    ? destinationPlaceId ?? currentMember?.destination_place_id ?? null
-    : destinationPlaceId ?? null
+  const nextDestinationText =
+    eventData.case_type === 'sougei' ? destinationText : null
+
+  const nextDestinationPlaceId =
+    eventData.case_type === 'sougei'
+      ? isSameLocationText(destinationText, currentMember?.destination_text ?? null)
+        ? destinationPlaceId ?? currentMember?.destination_place_id ?? null
+        : destinationPlaceId ?? null
+      : null
 
   const { error } = await supabase
     .from('event_members')
@@ -681,7 +695,7 @@ export async function updateEventMember(formData: FormData): Promise<void> {
       start_lat: resolvedStartLat,
       start_lng: resolvedStartLng,
       start_place_id: resolvedStartPlaceId,
-      destination_text: destinationText,
+      destination_text: nextDestinationText,
       destination_lat: resolvedDestination.lat,
       destination_lng: resolvedDestination.lng,
       destination_place_id: nextDestinationPlaceId,
