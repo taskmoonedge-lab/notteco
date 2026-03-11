@@ -326,8 +326,14 @@ export async function searchPlaces(rawQuery: string): Promise<PlaceSearchResult>
     }
   }
 
+  let googleResult: PlaceSearchResult | null = null
+
   if (process.env.GOOGLE_MAPS_API_KEY) {
-    return searchWithGooglePlaces(query)
+    googleResult = await searchWithGooglePlaces(query)
+
+    if (googleResult.ok && googleResult.items.length > 0) {
+      return googleResult
+    }
   }
 
   const candidateQueries = buildJapaneseQueries(query)
@@ -337,14 +343,28 @@ export async function searchPlaces(rawQuery: string): Promise<PlaceSearchResult>
       const items = await searchWithNominatim(candidate)
 
       if (items.length > 0) {
+        const googleDebug = googleResult ? `|google:${googleResult.debug}` : ''
+
         return {
           ok: true,
           items,
-          debug: `nominatim_matched:${candidate}`,
+          debug: `nominatim_matched:${candidate}${googleDebug}`,
         }
       }
     } catch (error) {
       console.error('place search failed for query:', candidate, error)
+    }
+  }
+
+  if (googleResult) {
+    if (googleResult.ok) {
+      return googleResult
+    }
+
+    return {
+      ok: true,
+      items: [],
+      debug: `google_failed_fallback_no_result:${googleResult.debug}`,
     }
   }
 
