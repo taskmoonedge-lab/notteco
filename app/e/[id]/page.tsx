@@ -158,14 +158,21 @@ export default async function ParticipantEventPage({
       <EventToast notice={notice} />
 
       <div className="mx-auto max-w-5xl space-y-6">
-        {notice === 'replan_required' ? (
+        {safeRoutePlans.length > 0 && !event.plan_is_latest ? (
           <section className="rounded-3xl border-2 border-amber-300 bg-amber-50 px-6 py-5 shadow-sm">
             <p className="text-base font-extrabold text-amber-900">
-              参加登録が更新されたため、配車結果は最新ではありません。
+              現在の配車結果は最新ではありません。
             </p>
             <p className="mt-2 text-sm text-amber-800">
-              現在の配車結果は最新ではないため、管理者が内容確認後に再度「配車する」を押してください。
+              イベント・参加者・運転手情報に変更があります。管理者が再度「配車する」を押して更新してください。
             </p>
+          </section>
+        ) : null}
+
+        {safeRoutePlans.length > 0 && event.plan_is_latest ? (
+          <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-5 shadow-sm">
+            <p className="text-base font-extrabold text-emerald-900">現在の配車結果は最新です。</p>
+            <p className="mt-2 text-sm text-emerald-800">このまま内容を確認できます。変更があった場合は管理者が再度配車を実行してください。</p>
           </section>
         ) : null}
 
