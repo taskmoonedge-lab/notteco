@@ -2,6 +2,7 @@ import Link from 'next/link'
 import PlaceSearchSelectInput from '../../../components/PlaceSearchSelectInput'
 import { supabase } from '../../../lib/supabase'
 import { buildGoogleMapsDirectionsUrl } from '../../../lib/maps'
+import { buildNoriaiTimeline } from '../../../lib/planTimeline'
 import {
   buildSimplePlan,
   type EventMemberRecord,
@@ -73,6 +74,14 @@ function formatCreatedAt(value: string | null): string {
 function formatEventAt(value: string | null): string {
   if (!value) return '未設定'
   return new Date(value).toLocaleString('ja-JP')
+}
+
+function formatClock(value: Date | null | undefined): string {
+  if (!value) return '未算出'
+  return value.toLocaleTimeString('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function toDateTimeLocalValue(value: string | null | undefined): string {
@@ -169,6 +178,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
       : '出発地点（共通基点と異なる場合のみ編集してください）'
 
   const totalCapacity = safeVehicleOffers.reduce((sum, vehicle) => sum + vehicle.capacity, 0)
+  const hasValidEventAt = Boolean(event.event_at && !Number.isNaN(new Date(event.event_at).getTime()))
   const assignedMembersCount = assignments.reduce((sum, assignment) => sum + assignment.members.length, 0)
   const adminPath = `/admin/events/${event.id}`
   const participantPath = `/e/${event.id}`
@@ -242,6 +252,12 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
           {routePlansError ? <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">エラー: {routePlansError.message}</div> : null}
 
+          {event.case_type === 'noriai' && !hasValidEventAt ? (
+            <div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              到着時間が未設定のため、出発時刻・ピックアップ時刻は表示できません。イベント情報から到着時間を設定してください。
+            </div>
+          ) : null}
+
           {!safeRoutePlans.length ? (
             <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
               <p className="text-base font-semibold text-slate-800">まだ配車が作成されていません</p>
@@ -263,10 +279,22 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
               <div className="grid gap-4 md:grid-cols-2">
                 {safeRoutePlans.map((plan, idx) => {
                   const orderedMemberNames = Array.isArray(plan.ordered_member_names) ? plan.ordered_member_names : []
+                  const orderedMemberIds = Array.isArray(plan.ordered_member_ids) ? plan.ordered_member_ids : []
                   const routeStops = Array.isArray(plan.route_stops)
                     ? plan.route_stops.filter((stop) => typeof stop === 'string' && stop.trim().length > 0)
                     : []
                   const mapUrl = buildGoogleMapsDirectionsUrl(routeStops)
+                  const planVehicle = safeVehicleOffers.find((vehicle) => vehicle.id === plan.vehicle_offer_id) ?? null
+                  const orderedMembers = orderedMemberIds
+                    .map((memberId) => safeMembers.find((member) => member.id === memberId))
+                    .filter((member): member is EventMemberRecord => Boolean(member))
+                  const timeline = buildNoriaiTimeline({
+                    event,
+                    eventAt: event.event_at,
+                    vehicle: planVehicle,
+                    orderedMembers,
+                    totalDurationSeconds: plan.total_duration_seconds,
+                  })
 
                   return (
                     <details key={plan.id + idx} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -284,14 +312,39 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                         </div>
                       </summary>
 
-                      <div className="border-t border-slate-100 px-5 py-4 text-sm text-slate-700 space-y-4">
+                      <div className="space-y-4 border-t border-slate-100 px-5 py-4 text-sm text-slate-700">
+                        {event.case_type === 'noriai' ? (
+                          <div className="grid gap-3 rounded-2xl border border-teal-200 bg-teal-50 p-4 sm:grid-cols-2">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">運転手の出発時刻</p>
+                              <p className="mt-1 text-lg font-extrabold text-teal-900">{formatClock(timeline?.departureAt)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">目的地到着予定</p>
+                              <p className="mt-1 text-lg font-extrabold text-teal-900">{formatClock(timeline?.arrivalAt)}</p>
+                            </div>
+                          </div>
+                        ) : null}
+
                         <div>
-                          <p className="font-semibold text-slate-800">搭乗順</p>
+                          <p className="font-semibold text-slate-800">搭乗順{event.case_type === 'noriai' ? '（ピックアップ時刻）' : ''}</p>
                           {orderedMemberNames.length > 0 ? (
-                            <ol className="mt-2 list-decimal ml-5 space-y-1">
-                              {orderedMemberNames.map((name, memberIndex) => (
-                                <li key={`${plan.id}-member-${memberIndex}`}>{name}</li>
-                              ))}
+                            <ol className="mt-2 space-y-2">
+                              {orderedMemberNames.map((name, memberIndex) => {
+                                const memberId = orderedMemberIds[memberIndex]
+                                const pickupAt = memberId ? timeline?.pickupTimesByMemberId[memberId] : null
+
+                                return (
+                                  <li key={`${plan.id}-member-${memberIndex}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                    <span className="font-medium text-slate-800">{memberIndex + 1}. {name}</span>
+                                    {event.case_type === 'noriai' ? (
+                                      <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-teal-700">
+                                        ピックアップ {formatClock(pickupAt ?? null)}
+                                      </span>
+                                    ) : null}
+                                  </li>
+                                )
+                              })}
                             </ol>
                           ) : (
                             <p className="mt-2 text-sm text-slate-500">搭乗者が割り当てられていません。</p>
@@ -299,7 +352,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                         </div>
 
                         {plan.route_text ? (
-                          <p className="text-xs text-slate-500 break-all">{plan.route_text}</p>
+                          <p className="break-all text-xs text-slate-500">{plan.route_text}</p>
                         ) : null}
 
                         <div className="flex flex-wrap items-center gap-3 pt-1">

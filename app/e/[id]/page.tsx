@@ -2,6 +2,7 @@ import Link from 'next/link'
 import PlaceSearchSelectInput from '../../../components/PlaceSearchSelectInput'
 import { supabase } from '../../../lib/supabase'
 import { buildGoogleMapsDirectionsUrl } from '../../../lib/maps'
+import { buildNoriaiTimeline } from '../../../lib/planTimeline'
 import {
   type EventMemberRecord,
   type EventRecord,
@@ -29,11 +30,13 @@ type ParticipantEventPageProps = {
 
 type RoutePlanRecord = {
   id: string
+  vehicle_offer_id: string | null
   driver_name: string | null
   member_names: string[] | null
   route_stops: string[] | null
   total_distance_meters: number | null
   total_duration_seconds: number | null
+  ordered_member_ids: string[] | null
   ordered_member_names: string[] | null
   created_at: string
 }
@@ -59,6 +62,14 @@ function formatCreatedAt(value: string | null): string {
   if (!value) return '不明'
   return new Date(value).toLocaleString('ja-JP')
 }
+function formatClock(value: Date | null | undefined): string {
+  if (!value) return '未算出'
+  return value.toLocaleTimeString('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 
 function buildParticipantReturnPath(eventId: string, options?: { memberId?: string; vehicleOfferId?: string }) {
   const params = new URLSearchParams()
@@ -124,7 +135,7 @@ export default async function ParticipantEventPage({
   const { data: routePlans, error: routePlansError } = await supabase
     .from('route_plans')
     .select(
-      'id, driver_name, member_names, route_stops, total_distance_meters, total_duration_seconds, ordered_member_names, created_at'
+      'id, vehicle_offer_id, driver_name, member_names, route_stops, total_distance_meters, total_duration_seconds, ordered_member_ids, ordered_member_names, created_at'
     )
     .eq('event_id', id)
     .order('created_at', { ascending: false })
@@ -155,6 +166,7 @@ export default async function ParticipantEventPage({
       ? '運転手の出発地点'
       : '出発地点（共通基点と異なる場合のみ入力してください）'
   const sougeiFallbackText = event.destination_text || '共通基点を使用'
+  const hasValidEventAt = Boolean(event.event_at && !Number.isNaN(new Date(event.event_at).getTime()))
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 md:p-8">
@@ -634,6 +646,12 @@ export default async function ParticipantEventPage({
             </div>
           ) : null}
 
+          {event.case_type === 'noriai' && !hasValidEventAt ? (
+            <div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              到着時間が未設定のため、出発時刻・ピックアップ時刻は表示できません。イベント管理者に到着時間の設定を依頼してください。
+            </div>
+          ) : null}
+
           {!safeRoutePlans.length ? (
             <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
               <p className="text-sm text-slate-500">
@@ -644,8 +662,20 @@ export default async function ParticipantEventPage({
             <ul className="mt-6 grid gap-4 xl:grid-cols-2">
               {safeRoutePlans.map((plan) => {
                 const orderedNames = plan.ordered_member_names ?? plan.member_names ?? []
+                const orderedIds = plan.ordered_member_ids ?? []
                 const stops = plan.route_stops ?? []
                 const mapUrl = buildGoogleMapsDirectionsUrl(stops)
+                const planVehicle = safeVehicleOffers.find((vehicle) => vehicle.id === plan.vehicle_offer_id) ?? null
+                const orderedMembers = orderedIds
+                  .map((memberId) => safeMembers.find((member) => member.id === memberId))
+                  .filter((member): member is EventMemberRecord => Boolean(member))
+                const timeline = buildNoriaiTimeline({
+                  event,
+                  eventAt: event.event_at,
+                  vehicle: planVehicle,
+                  orderedMembers,
+                  totalDurationSeconds: plan.total_duration_seconds,
+                })
 
                 return (
                   <li
@@ -664,19 +694,31 @@ export default async function ParticipantEventPage({
                             </span>
                           </div>
 
+                          {event.case_type === 'noriai' ? (
+                            <div className="mt-4 grid gap-2 rounded-xl border border-teal-200 bg-teal-50 p-3 sm:grid-cols-2">
+                              <p className="text-xs font-semibold text-teal-800">出発: <span className="text-sm font-extrabold">{formatClock(timeline?.departureAt)}</span></p>
+                              <p className="text-xs font-semibold text-teal-800">到着予定: <span className="text-sm font-extrabold">{formatClock(timeline?.arrivalAt)}</span></p>
+                            </div>
+                          ) : null}
+
                           <div className="mt-4">
                             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                               搭乗者
                             </p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                              {orderedNames.map((name, index) => (
-                                <span
-                                  key={`${plan.id}-member-${index}`}
-                                  className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
-                                >
-                                  {name}
-                                </span>
-                              ))}
+                              {orderedNames.map((name, index) => {
+                                const memberId = orderedIds[index]
+                                const pickupAt = memberId ? timeline?.pickupTimesByMemberId[memberId] : null
+
+                                return (
+                                  <span
+                                    key={`${plan.id}-member-${index}`}
+                                    className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
+                                  >
+                                    {name}{event.case_type === 'noriai' ? ` (${formatClock(pickupAt ?? null)})` : ''}
+                                  </span>
+                                )
+                              })}
                             </div>
                           </div>
                         </div>
