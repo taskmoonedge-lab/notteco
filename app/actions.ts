@@ -27,6 +27,17 @@ function parseOptionalString(value: FormDataEntryValue | null): string | null {
   return trimmed ? trimmed : null
 }
 
+function parseOptionalDateTime(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  const parsed = new Date(trimmed)
+  if (Number.isNaN(parsed.getTime())) return null
+
+  return trimmed
+}
+
 function normalizeOptionalText(value: string | null | undefined): string | null {
   const trimmed = (value ?? '').trim()
   return trimmed ? trimmed : null
@@ -246,6 +257,7 @@ export async function createEvent(formData: FormData): Promise<void> {
   const destinationPlaceId = parseOptionalString(
     formData.get('destinationTextPlaceId')
   )
+  const eventAt = parseOptionalDateTime(formData.get('eventAt'))
 
   if (!title || !title.trim()) {
     console.error('イベント名が空です')
@@ -259,6 +271,11 @@ export async function createEvent(formData: FormData): Promise<void> {
 
   if (!destinationText || !destinationText.trim()) {
     console.error('目的地または基点が空です')
+    return
+  }
+
+  if (!eventAt) {
+    console.error('イベント日時が空または不正です')
     return
   }
 
@@ -280,6 +297,7 @@ export async function createEvent(formData: FormData): Promise<void> {
         destination_lat: destinationCoords.lat,
         destination_lng: destinationCoords.lng,
         destination_place_id: destinationPlaceId,
+        event_at: eventAt,
       },
     ])
     .select('id')
@@ -304,6 +322,7 @@ export async function updateEvent(formData: FormData): Promise<void> {
   const destinationPlaceId = parseOptionalString(
     formData.get('destinationTextPlaceId')
   )
+  const eventAt = parseOptionalDateTime(formData.get('eventAt'))
 
   if (!eventId || !eventId.trim()) {
     console.error('eventId が空です')
@@ -317,6 +336,11 @@ export async function updateEvent(formData: FormData): Promise<void> {
 
   if (!destinationText || !destinationText.trim()) {
     console.error('目的地または基点が空です')
+    return
+  }
+
+  if (!eventAt) {
+    console.error('イベント日時が空または不正です')
     return
   }
 
@@ -362,6 +386,7 @@ export async function updateEvent(formData: FormData): Promise<void> {
       destination_lat: destinationCoords.lat,
       destination_lng: destinationCoords.lng,
       destination_place_id: nextDestinationPlaceId,
+      event_at: eventAt,
     })
     .eq('id', eventId)
 
