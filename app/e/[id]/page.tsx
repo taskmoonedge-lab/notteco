@@ -157,8 +157,6 @@ export default async function ParticipantEventPage({
     event.case_type === "noriai"
       ? "出発地点"
       : "出発地点（共通基点と異なる場合のみ編集してください）";
-  const memberDestinationLabel =
-    event.case_type === "noriai" ? "到着地点（通常は不要）" : "到着地点";
   const vehicleStartLabel =
     event.case_type === "noriai"
       ? "運転手の出発地点"
@@ -328,15 +326,17 @@ export default async function ParticipantEventPage({
                 required={event.case_type === "noriai"}
               />
 
-              <PlaceSearchSelectInput
-                label={memberDestinationLabel}
-                textName="destinationText"
-                latName="destinationLat"
-                lngName="destinationLng"
-                placeholder="駅名、住所を入力"
-                helperText="入力後に検索を押し、候補から1件選んでください"
-                required={event.case_type === "sougei"}
-              />
+              {event.case_type === "sougei" ? (
+                <PlaceSearchSelectInput
+                  label="到着地点"
+                  textName="destinationText"
+                  latName="destinationLat"
+                  lngName="destinationLng"
+                  placeholder="駅名、住所を入力"
+                  helperText="入力後に検索を押し、候補から1件選んでください"
+                  required
+                />
+              ) : null}
 
               <button
                 type="submit"
@@ -679,13 +679,15 @@ export default async function ParticipantEventPage({
                               : "未設定",
                           )}
                         </p>
-                        <p>
-                          {memberDestinationLabel}:{" "}
-                          {renderLocationText(
-                            member.destination_text,
-                            "未設定",
-                          )}
-                        </p>
+                        {event.case_type === "sougei" ? (
+                          <p>
+                            到着地点:{" "}
+                            {renderLocationText(
+                              member.destination_text,
+                              "未設定",
+                            )}
+                          </p>
+                        ) : null}
                       </div>
                       <details className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
                         <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900">
@@ -734,18 +736,20 @@ export default async function ParticipantEventPage({
                               helperText="入力後に検索を押し、候補から1件選んでください"
                               required={event.case_type === "noriai"}
                             />
-                            <PlaceSearchSelectInput
-                              label={memberDestinationLabel}
-                              textName="destinationText"
-                              latName="destinationLat"
-                              lngName="destinationLng"
-                              defaultText={member.destination_text}
-                              defaultLat={member.destination_lat}
-                              defaultLng={member.destination_lng}
-                              placeholder="駅名、住所を入力"
-                              helperText="入力後に検索を押し、候補から1件選んでください"
-                              required={event.case_type === "sougei"}
-                            />
+                            {event.case_type === "sougei" ? (
+                              <PlaceSearchSelectInput
+                                label="到着地点"
+                                textName="destinationText"
+                                latName="destinationLat"
+                                lngName="destinationLng"
+                                defaultText={member.destination_text}
+                                defaultLat={member.destination_lat}
+                                defaultLng={member.destination_lng}
+                                placeholder="駅名、住所を入力"
+                                helperText="入力後に検索を押し、候補から1件選んでください"
+                                required
+                              />
+                            ) : null}
                             <button
                               type="submit"
                               className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600"
