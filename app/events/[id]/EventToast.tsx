@@ -6,47 +6,94 @@ type EventToastProps = {
   notice?: string
 }
 
-function getMessage(notice?: string): string | null {
+type ToastConfig = {
+  message: string
+  duration: number
+  emphasized?: boolean
+}
+
+function getToastConfig(notice?: string): ToastConfig | null {
   if (notice === 'replan') {
-    return '再度配車ボタンを押して配車結果を更新してください'
+    return {
+      message: '再度配車ボタンを押して配車結果を更新してください',
+      duration: 3000,
+    }
   }
 
   if (notice === 'planned') {
-    return '配車結果を更新しました。'
+    return {
+      message: '配車結果を更新しました。',
+      duration: 3000,
+    }
   }
 
   if (notice === 'plans_deleted') {
-    return '配車結果を削除しました。'
+    return {
+      message: '配車結果を削除しました。',
+      duration: 3000,
+    }
   }
 
   if (notice === 'event_time_required') {
-    return 'ノリアイの到着時間を設定してから配車してください。'
+    return {
+      message: 'ノリアイの到着時間を設定してから配車してください。',
+      duration: 3000,
+    }
+  }
+
+  if (notice === 'member_registered') {
+    return {
+      message: '搭乗者登録が完了しました',
+      duration: 2000,
+      emphasized: true,
+    }
+  }
+
+  if (notice === 'driver_registered') {
+    return {
+      message: '運転手登録が完了しました',
+      duration: 2000,
+      emphasized: true,
+    }
   }
 
   return null
 }
 
 export default function EventToast({ notice }: EventToastProps) {
-  const [visible, setVisible] = useState(Boolean(getMessage(notice)))
-  const message = getMessage(notice)
+  const toastConfig = getToastConfig(notice)
+  const [visible, setVisible] = useState(true)
 
   useEffect(() => {
-    if (!message) return
+    if (!toastConfig) return
 
-    const timer = window.setTimeout(() => {
+    const showTimer = window.setTimeout(() => {
+      setVisible(true)
+    }, 0)
+
+    const hideTimer = window.setTimeout(() => {
       setVisible(false)
-    }, 3000)
+    }, toastConfig.duration)
 
-    return () => window.clearTimeout(timer)
-  }, [message])
+    return () => {
+      window.clearTimeout(showTimer)
+      window.clearTimeout(hideTimer)
+    }
+  }, [notice, toastConfig])
 
-  if (!message || !visible) {
+  if (!toastConfig || !visible) {
     return null
   }
 
   return (
-    <div className="fixed right-4 top-4 z-50 rounded-xl bg-black px-4 py-3 text-sm font-medium text-white shadow-lg">
-      {message}
+    <div
+      className={`fixed right-4 top-4 z-50 rounded-2xl bg-black text-white shadow-xl ${
+        toastConfig.emphasized
+          ? 'px-8 py-5 text-2xl font-extrabold tracking-wide'
+          : 'px-4 py-3 text-sm font-medium'
+      }`}
+    >
+      {toastConfig.message}
     </div>
   )
 }

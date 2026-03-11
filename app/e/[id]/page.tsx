@@ -89,13 +89,6 @@ function renderLocationText(value: string | null | undefined, fallback: string):
   return value && value.trim() ? value : fallback
 }
 
-function getRegistrationStatusLabel(hasMember: boolean, hasVehicleOffer: boolean): string {
-  if (hasMember && hasVehicleOffer) return '搭乗者・運転手の両方を登録済みです'
-  if (hasMember) return '搭乗者として登録済みです'
-  if (hasVehicleOffer) return '運転手として登録済みです'
-  return 'まだあなたの登録は完了していません'
-}
-
 export default async function ParticipantEventPage({
   params,
   searchParams,
@@ -146,13 +139,6 @@ export default async function ParticipantEventPage({
   const focusedMember = safeMembers.find((member) => member.id === focusedMemberId) ?? null
   const focusedVehicleOffer =
     safeVehicleOffers.find((vehicle) => vehicle.id === focusedVehicleOfferId) ?? null
-  const hasFocusedMember = Boolean(focusedMember)
-  const hasFocusedVehicleOffer = Boolean(focusedVehicleOffer)
-  const registrationStatusLabel = getRegistrationStatusLabel(
-    hasFocusedMember,
-    hasFocusedVehicleOffer
-  )
-
   const eventBaseLabel = event.case_type === 'noriai' ? '共通目的地' : '共通基点'
   const memberStartLabel =
     event.case_type === 'noriai'
@@ -231,65 +217,7 @@ export default async function ParticipantEventPage({
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-teal-700">登録ステータス</p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-                {registrationStatusLabel}
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                自分の登録だけを上から確認・修正できます。両方登録する場合は、搭乗者登録と運転手登録をそれぞれ1回ずつ行ってください。
-              </p>
-            </div>
 
-            <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700">
-              {hasFocusedMember && hasFocusedVehicleOffer
-                ? '両方登録済み'
-                : hasFocusedMember
-                  ? '搭乗者のみ登録済み'
-                  : hasFocusedVehicleOffer
-                    ? '運転手のみ登録済み'
-                    : '未登録'}
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className={`rounded-2xl border px-4 py-4 ${hasFocusedMember ? 'border-teal-200 bg-teal-50' : 'border-slate-200 bg-slate-50'}`}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">搭乗者登録</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                {hasFocusedMember ? '登録済み' : '未登録'}
-              </p>
-              <p className="mt-2 text-xs leading-5 text-slate-500">
-                {hasFocusedMember
-                  ? `名前: ${focusedMember?.name ?? ''}`
-                  : '乗るだけの場合はこちらを登録してください。'}
-              </p>
-            </div>
-
-            <div className={`rounded-2xl border px-4 py-4 ${hasFocusedVehicleOffer ? 'border-slate-300 bg-white' : 'border-slate-200 bg-slate-50'}`}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">運転手登録</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                {hasFocusedVehicleOffer ? '登録済み' : '未登録'}
-              </p>
-              <p className="mt-2 text-xs leading-5 text-slate-500">
-                {hasFocusedVehicleOffer
-                  ? `名前: ${focusedVehicleOffer?.driver_name ?? ''} / 定員 ${focusedVehicleOffer?.capacity ?? '-'}人`
-                  : '車を出せる場合はこちらも登録してください。'}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">再編集</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                {hasFocusedMember || hasFocusedVehicleOffer ? '上の登録内容からすぐ修正できます' : '登録後に自分の内容が上に表示されます'}
-              </p>
-              <p className="mt-2 text-xs leading-5 text-slate-500">
-                登録直後はこのページ上部に自分の情報だけが表示され、そのまま更新・削除できます。
-              </p>
-            </div>
-          </div>
-        </section>
 
         {focusedMember || focusedVehicleOffer ? (
           <section className="grid gap-6 lg:grid-cols-2">
