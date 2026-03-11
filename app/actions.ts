@@ -980,6 +980,15 @@ export async function executePlan(formData: FormData): Promise<void> {
     return
   }
 
+  if (event.case_type === 'noriai') {
+    const parsedEventAt = event.event_at ? new Date(event.event_at) : null
+
+    if (!parsedEventAt || Number.isNaN(parsedEventAt.getTime())) {
+      console.error('ノリアイの到着時間(event_at)が未設定または不正です')
+      redirect(appendNoticeParam(returnToPath, 'event_time_required'))
+    }
+  }
+
   const { data: members, error: membersError } = await supabase
     .from('event_members')
     .select('*')

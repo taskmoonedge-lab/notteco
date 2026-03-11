@@ -19,6 +19,10 @@ function getMessage(notice?: string): string | null {
     return '配車結果を削除しました。'
   }
 
+  if (notice === 'event_time_required') {
+    return 'ノリアイの到着時間を設定してから配車してください。'
+  }
+
   return null
 }
 
