@@ -100,7 +100,7 @@ function PlanStatusBanner({ routePlans, notice }: { routePlans: RoutePlanRecord[
       <section className="rounded-3xl border-2 border-amber-300 bg-amber-50 px-6 py-5 shadow-sm">
         <p className="text-base font-extrabold text-amber-900">すべての修正後に「配車する」を押してください。</p>
         <p className="mt-2 text-sm text-amber-800">
-          最新の搭乗者・運転手・共通基点に合わせるため、以前の配車結果は自動で削除されました。
+          参加者情報が更新され、現在の配車結果は最新ではありません。内容確認後に再度「配車する」を押してください。
         </p>
       </section>
     )

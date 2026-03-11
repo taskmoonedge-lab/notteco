@@ -227,19 +227,10 @@ function getReturnToPath(formData: FormData, eventId: string): string {
   return returnTo
 }
 
-async function clearRoutePlansAndRedirect(
+async function markReplanRequiredAndRedirect(
   eventId: string,
   returnToPath?: string
 ): Promise<void> {
-  const { error } = await supabase
-    .from('route_plans')
-    .delete()
-    .eq('event_id', eventId)
-
-  if (error) {
-    console.error('配車結果削除エラー:', error.message)
-  }
-
   const nextPath = returnToPath ?? `/events/${eventId}`
 
   revalidatePath(`/events/${eventId}`)
@@ -395,7 +386,7 @@ export async function updateEvent(formData: FormData): Promise<void> {
     return
   }
 
-  await clearRoutePlansAndRedirect(eventId, returnToPath)
+  await markReplanRequiredAndRedirect(eventId, returnToPath)
 }
 
 export async function createEventMember(formData: FormData): Promise<void> {
@@ -507,7 +498,7 @@ export async function createEventMember(formData: FormData): Promise<void> {
   }
 
   const focusPath = appendSearchParam(returnToPath, 'memberId', insertedMember.id)
-  await clearRoutePlansAndRedirect(eventId, focusPath)
+  await markReplanRequiredAndRedirect(eventId, focusPath)
 }
 
 export async function updateEventMember(formData: FormData): Promise<void> {
@@ -662,7 +653,7 @@ export async function updateEventMember(formData: FormData): Promise<void> {
     return
   }
 
-  await clearRoutePlansAndRedirect(eventId, returnToPath)
+  await markReplanRequiredAndRedirect(eventId, returnToPath)
 }
 
 export async function deleteEventMember(formData: FormData): Promise<void> {
@@ -690,7 +681,7 @@ export async function deleteEventMember(formData: FormData): Promise<void> {
     return
   }
 
-  await clearRoutePlansAndRedirect(eventId, returnToPath)
+  await markReplanRequiredAndRedirect(eventId, returnToPath)
 }
 
 export async function createVehicleOffer(formData: FormData): Promise<void> {
@@ -794,7 +785,7 @@ export async function createVehicleOffer(formData: FormData): Promise<void> {
     return
   }
 
-  await clearRoutePlansAndRedirect(
+  await markReplanRequiredAndRedirect(
     eventId,
     appendSearchParam(returnToPath, 'vehicleOfferId', insertedVehicleOffer.id)
   )
@@ -929,7 +920,7 @@ export async function updateVehicleOffer(formData: FormData): Promise<void> {
     return
   }
 
-  await clearRoutePlansAndRedirect(eventId, returnToPath)
+  await markReplanRequiredAndRedirect(eventId, returnToPath)
 }
 
 export async function deleteVehicleOffer(formData: FormData): Promise<void> {
@@ -957,7 +948,7 @@ export async function deleteVehicleOffer(formData: FormData): Promise<void> {
     return
   }
 
-  await clearRoutePlansAndRedirect(eventId, returnToPath)
+  await markReplanRequiredAndRedirect(eventId, returnToPath)
 }
 
 export async function executePlan(formData: FormData): Promise<void> {
