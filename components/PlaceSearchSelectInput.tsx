@@ -196,7 +196,7 @@ export default function PlaceSearchSelectInput({
 
   return (
     <div className="relative">
-      <label className="mb-2 block text-sm font-medium text-slate-700">
+      <label className="mb-2 block text-base font-bold text-slate-800">
         {label}
       </label>
 
