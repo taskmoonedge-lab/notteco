@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import PlaceSearchSelectInput from '../components/PlaceSearchSelectInput'
+import ModeSwitchFields from '../components/ModeSwitchFields'
 import { supabase } from '../lib/supabase'
 import { getEventOwnerId } from '../lib/eventOwner'
 import { createEvent } from './actions'
@@ -109,7 +109,7 @@ export default async function Home() {
         <section className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm sm:p-8 lg:p-12">
           <div>
             <p className="inline-flex rounded-full bg-emerald-100 px-4 py-1.5 text-sm font-bold text-emerald-700">
-              乗り合い・送迎の調整を、やさしく最短で
+              乗り合い・送迎の調整を、一瞬で完結
             </p>
             <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
               Nottecoで最短・最適配車
@@ -231,42 +231,7 @@ export default async function Home() {
               />
             </div>
 
-            <div>
-              <p className="mb-2 block text-base font-bold text-slate-800">移動タイプ</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <input type="radio" name="caseType" value="noriai" defaultChecked className="mt-1" />
-                  <span className="text-base font-medium text-slate-800">ノリアイ（同じ目的地へ向かう）</span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <input type="radio" name="caseType" value="sougei" className="mt-1" />
-                  <span className="text-base font-medium text-slate-800">ソウゲイ（共通基点から送る）</span>
-                </label>
-              </div>
-            </div>
-
-            <PlaceSearchSelectInput
-              label="ノリアイ: 共通目的地 / ソウゲイ: 共通基点"
-              textName="destinationText"
-              latName="destinationLat"
-              lngName="destinationLng"
-              placeholder="駅名、施設名、住所など"
-              helperText="候補から1件選択してください"
-              required
-            />
-
-            <div>
-              <label htmlFor="event-at" className="mb-2 block text-base font-bold text-slate-800">
-                ノリアイ: 到着時間 / ソウゲイ: 集合時間
-              </label>
-              <input
-                id="event-at"
-                name="eventAt"
-                type="datetime-local"
-                required
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base font-medium outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
-              />
-            </div>
+            <ModeSwitchFields />
 
             <p className="text-center text-sm font-medium text-slate-600">
               <Link href="/terms" className="font-bold text-orange-500 underline underline-offset-2 hover:text-orange-600">
