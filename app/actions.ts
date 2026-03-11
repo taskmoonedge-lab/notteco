@@ -231,13 +231,9 @@ async function markReplanRequiredAndRedirect(
   eventId: string,
   returnToPath?: string
 ): Promise<void> {
-  const { error: updateError } = await supabase
-    .from('events')
-    .update({ plan_is_latest: false })
-    .eq('id', eventId)
+  const marked = await markReplanRequired(eventId)
 
-  if (updateError) {
-    console.error('配車結果最新フラグ更新エラー:', updateError.message)
+  if (!marked) {
     return
   }
 
@@ -247,6 +243,20 @@ async function markReplanRequiredAndRedirect(
   revalidatePath(`/admin/events/${eventId}`)
   revalidatePath(`/e/${eventId}`)
   redirect(appendNoticeParam(nextPath, 'replan_required'))
+}
+
+async function markReplanRequired(eventId: string): Promise<boolean> {
+  const { error: updateError } = await supabase
+    .from('events')
+    .update({ plan_is_latest: false })
+    .eq('id', eventId)
+
+  if (updateError) {
+    console.error('配車結果最新フラグ更新エラー:', updateError.message)
+    return false
+  }
+
+  return true
 }
 
 async function redirectWithNotice(
@@ -518,6 +528,12 @@ export async function createEventMember(formData: FormData): Promise<void> {
 
   if (error || !insertedMember?.id) {
     console.error('搭乗者作成エラー:', error?.message ?? '搭乗者ID取得失敗')
+    return
+  }
+
+  const marked = await markReplanRequired(eventId)
+
+  if (!marked) {
     return
   }
 
@@ -806,6 +822,12 @@ export async function createVehicleOffer(formData: FormData): Promise<void> {
 
   if (error || !insertedVehicleOffer?.id) {
     console.error('運転手作成エラー:', error?.message ?? '運転手ID取得失敗')
+    return
+  }
+
+  const marked = await markReplanRequired(eventId)
+
+  if (!marked) {
     return
   }
 
