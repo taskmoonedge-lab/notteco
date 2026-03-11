@@ -27,7 +27,7 @@ export default function RootLayout({
             <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-3 sm:px-6 lg:px-8">
               <Link href="/" className="inline-flex items-center" aria-label="トップページへ戻る">
                 <Image
-                  src="/notteco-app/notteco.png"
+                  src="/notteco-logo.svg"
                   alt="NOTTECO"
                   width={210}
                   height={60}
