@@ -174,6 +174,8 @@ export default async function ParticipantEventPage({
     safeMembers.length - assignedMembersCount,
     0,
   );
+  const registerButtonClass =
+    "inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-teal-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-teal-600 sm:text-base";
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 md:p-8">
@@ -338,7 +340,7 @@ export default async function ParticipantEventPage({
 
               <button
                 type="submit"
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-4 py-3 text-base font-bold text-white transition hover:bg-teal-600"
+                className={registerButtonClass}
               >
                 搭乗者を登録する
               </button>
@@ -408,7 +410,7 @@ export default async function ParticipantEventPage({
 
               <button
                 type="submit"
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-base font-bold text-white transition hover:bg-slate-800"
+                className={registerButtonClass}
               >
                 運転手を登録する
               </button>
