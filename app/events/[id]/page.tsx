@@ -234,6 +234,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
             <div className="border-b border-slate-200 p-8 lg:border-b-0 lg:border-r lg:p-10">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">{formatMode(event.case_type)}</span>
+                <span className="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">管理者ページ</span>
               </div>
               <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900">{event.title}</h1>
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
