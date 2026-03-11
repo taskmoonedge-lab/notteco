@@ -13,7 +13,6 @@ import {
   createVehicleOffer,
   deleteEventMember,
   deleteVehicleOffer,
-  executePlan,
   updateEventMember,
   updateVehicleOffer,
 } from '../../actions'
@@ -158,13 +157,13 @@ export default async function ParticipantEventPage({
   const memberStartLabel =
     event.case_type === 'noriai'
       ? '出発地点'
-      : '出発地点（共通基点と異なる場合のみ入力してください）'
+      : '出発地点（共通基点と異なる場合のみ編集してください）'
   const memberDestinationLabel =
     event.case_type === 'noriai' ? '到着地点（通常は不要）' : '到着地点'
   const vehicleStartLabel =
     event.case_type === 'noriai'
       ? '運転手の出発地点'
-      : '出発地点（共通基点と異なる場合のみ入力してください）'
+      : '出発地点（共通基点と異なる場合のみ編集してください）'
   const sougeiFallbackText = event.destination_text || '共通基点を使用'
   const hasValidEventAt = Boolean(event.event_at && !Number.isNaN(new Date(event.event_at).getTime()))
 
@@ -179,7 +178,7 @@ export default async function ParticipantEventPage({
               参加登録が更新されたため、配車結果は最新ではありません。
             </p>
             <p className="mt-2 text-sm text-amber-800">
-              管理者が内容確認後に再度「配車する」を押してください。
+              現在の配車結果は最新ではないため、管理者が内容確認後に再度「配車する」を押してください。
             </p>
           </section>
         ) : null}
@@ -295,15 +294,14 @@ export default async function ParticipantEventPage({
         {focusedMember || focusedVehicleOffer ? (
           <section className="grid gap-6 lg:grid-cols-2">
             {focusedMember ? (
-              <section className="rounded-3xl border-2 border-teal-300 bg-teal-50 p-6 shadow-sm md:p-8">
+              <section className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                      あなたの搭乗者登録
-                    </h2>
-                    <p className="mt-2 text-sm text-slate-600">
-                      登録直後の内容です。このまま修正や削除ができます。
-                    </p>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">あなたの搭乗者登録</h2>
+                    <div className="mt-4 space-y-2 text-sm text-slate-600">
+                      <p>{memberStartLabel}: {focusedMember.start_location_text || (event.case_type === 'sougei' ? '共通基点を使用' : '未設定')}</p>
+                      <p>{memberDestinationLabel}: {focusedMember.destination_text || '未設定'}</p>
+                    </div>
                   </div>
                   <Link
                     href={participantPath}
@@ -313,187 +311,179 @@ export default async function ParticipantEventPage({
                   </Link>
                 </div>
 
-                <form
-                  action={updateEventMember}
-                  className="mt-6 space-y-5"
-                >
-                  <input type="hidden" name="eventId" value={event.id} />
-                  <input type="hidden" name="memberId" value={focusedMember.id} />
-                  <input
-                    type="hidden"
-                    name="returnTo"
-                    value={buildParticipantReturnPath(event.id, {
-                      memberId: focusedMember.id,
-                      vehicleOfferId: focusedVehicleOffer?.id,
-                    })}
-                  />
-                  <div>
-                    <label htmlFor="my-member-name" className="mb-2 block text-sm font-medium text-slate-700">
-                      名前
-                    </label>
-                    <input
-                      id="my-member-name"
-                      name="name"
-                      type="text"
-                      required
-                      defaultValue={focusedMember.name}
-                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100"
-                    />
+                <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4" open>
+                  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900">この搭乗者を編集</summary>
+                  <div className="mt-4 space-y-3">
+                    <form action={updateEventMember} className="space-y-3">
+                      <input type="hidden" name="eventId" value={event.id} />
+                      <input type="hidden" name="memberId" value={focusedMember.id} />
+                      <input
+                        type="hidden"
+                        name="returnTo"
+                        value={buildParticipantReturnPath(event.id, {
+                          memberId: focusedMember.id,
+                          vehicleOfferId: focusedVehicleOffer?.id,
+                        })}
+                      />
+                      <div>
+                        <label htmlFor="my-member-name" className="mb-1 block text-xs font-medium text-slate-700">搭乗者名</label>
+                        <input
+                          id="my-member-name"
+                          name="name"
+                          type="text"
+                          required
+                          defaultValue={focusedMember.name}
+                          className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100"
+                        />
+                      </div>
+
+                      <PlaceSearchSelectInput
+                        label={memberStartLabel}
+                        textName="startLocationText"
+                        latName="startLat"
+                        lngName="startLng"
+                        placeholder={event.case_type === 'sougei' ? event.destination_text ?? '' : '駅名、住所を入力'}
+                        helperText="入力後に検索を押し、候補から1件選んでください"
+                        required={event.case_type === 'noriai'}
+                        defaultText={focusedMember.start_location_text}
+                        defaultLat={focusedMember.start_lat}
+                        defaultLng={focusedMember.start_lng}
+                      />
+
+                      <PlaceSearchSelectInput
+                        label={memberDestinationLabel}
+                        textName="destinationText"
+                        latName="destinationLat"
+                        lngName="destinationLng"
+                        placeholder="駅名、住所を入力"
+                        helperText="入力後に検索を押し、候補から1件選んでください"
+                        required={event.case_type === 'sougei'}
+                        defaultText={focusedMember.destination_text}
+                        defaultLat={focusedMember.destination_lat}
+                        defaultLng={focusedMember.destination_lng}
+                      />
+
+                      <button
+                        type="submit"
+                        className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600"
+                      >
+                        搭乗者を更新
+                      </button>
+                    </form>
+
+                    <form action={deleteEventMember}>
+                      <input type="hidden" name="eventId" value={event.id} />
+                      <input type="hidden" name="memberId" value={focusedMember.id} />
+                      <input
+                        type="hidden"
+                        name="returnTo"
+                        value={buildParticipantReturnPath(event.id, {
+                          vehicleOfferId: focusedVehicleOffer?.id,
+                        })}
+                      />
+                      <button
+                        type="submit"
+                        className="inline-flex w-full justify-center rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                      >
+                        搭乗者を削除
+                      </button>
+                    </form>
                   </div>
-
-                  <PlaceSearchSelectInput
-                    label={memberStartLabel}
-                    textName="startLocationText"
-                    latName="startLat"
-                    lngName="startLng"
-                    placeholder={event.case_type === 'sougei' ? event.destination_text ?? '' : '駅名、住所を入力'}
-                    helperText="入力後に検索を押し、候補から1件選んでください"
-                    required={event.case_type === 'noriai'}
-                    defaultText={focusedMember.start_location_text}
-                    defaultLat={focusedMember.start_lat}
-                    defaultLng={focusedMember.start_lng}
-                  />
-
-                  <PlaceSearchSelectInput
-                    label={memberDestinationLabel}
-                    textName="destinationText"
-                    latName="destinationLat"
-                    lngName="destinationLng"
-                    placeholder="駅名、住所を入力"
-                    helperText="入力後に検索を押し、候補から1件選んでください"
-                    required={event.case_type === 'sougei'}
-                    defaultText={focusedMember.destination_text}
-                    defaultLat={focusedMember.destination_lat}
-                    defaultLng={focusedMember.destination_lng}
-                  />
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <button
-                      type="submit"
-                      className="inline-flex items-center justify-center rounded-2xl bg-teal-500 px-4 py-3 text-base font-bold text-white transition hover:bg-teal-600"
-                    >
-                      この内容で更新する
-                    </button>
-                  </div>
-                </form>
-
-                <form action={deleteEventMember} className="mt-3">
-                  <input type="hidden" name="eventId" value={event.id} />
-                  <input type="hidden" name="memberId" value={focusedMember.id} />
-                  <input
-                    type="hidden"
-                    name="returnTo"
-                    value={buildParticipantReturnPath(event.id, {
-                      vehicleOfferId: focusedVehicleOffer?.id,
-                    })}
-                  />
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                  >
-                    この搭乗者登録を削除する
-                  </button>
-                </form>
+                </details>
               </section>
             ) : null}
 
             {focusedVehicleOffer ? (
-              <section className="rounded-3xl border-2 border-slate-300 bg-white p-6 shadow-sm md:p-8">
+              <section className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                      あなたの運転手登録
-                    </h2>
-                    <p className="mt-2 text-sm text-slate-600">
-                      登録直後の内容です。このまま修正や削除ができます。
-                    </p>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">あなたの運転手登録</h2>
+                    <div className="mt-4 space-y-2 text-sm text-slate-600">
+                      <p>{vehicleStartLabel}: {focusedVehicleOffer.start_location_text || (event.case_type === 'sougei' ? '共通基点を使用' : '未設定')}</p>
+                    </div>
                   </div>
-                  <Link
-                    href={participantPath}
-                    className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    新規登録に戻る
-                  </Link>
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">定員 {focusedVehicleOffer.capacity}人</span>
                 </div>
 
-                <form action={updateVehicleOffer} className="mt-6 space-y-5">
-                  <input type="hidden" name="eventId" value={event.id} />
-                  <input type="hidden" name="vehicleOfferId" value={focusedVehicleOffer.id} />
-                  <input
-                    type="hidden"
-                    name="returnTo"
-                    value={buildParticipantReturnPath(event.id, {
-                      memberId: focusedMember?.id,
-                      vehicleOfferId: focusedVehicleOffer.id,
-                    })}
-                  />
-                  <div>
-                    <label htmlFor="my-driver-name" className="mb-2 block text-sm font-medium text-slate-700">
-                      名前
-                    </label>
-                    <input
-                      id="my-driver-name"
-                      name="driverName"
-                      type="text"
-                      required
-                      defaultValue={focusedVehicleOffer.driver_name}
-                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100"
-                    />
+                <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4" open>
+                  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900">この運転手を編集</summary>
+                  <div className="mt-4 space-y-3">
+                    <form action={updateVehicleOffer} className="space-y-3">
+                      <input type="hidden" name="eventId" value={event.id} />
+                      <input type="hidden" name="vehicleOfferId" value={focusedVehicleOffer.id} />
+                      <input
+                        type="hidden"
+                        name="returnTo"
+                        value={buildParticipantReturnPath(event.id, {
+                          memberId: focusedMember?.id,
+                          vehicleOfferId: focusedVehicleOffer.id,
+                        })}
+                      />
+                      <div>
+                        <label htmlFor="my-driver-name" className="mb-1 block text-xs font-medium text-slate-700">運転手名</label>
+                        <input
+                          id="my-driver-name"
+                          name="driverName"
+                          type="text"
+                          required
+                          defaultValue={focusedVehicleOffer.driver_name}
+                          className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100"
+                        />
+                      </div>
+
+                      <PlaceSearchSelectInput
+                        label={vehicleStartLabel}
+                        textName="startLocationText"
+                        latName="startLat"
+                        lngName="startLng"
+                        placeholder={event.case_type === 'sougei' ? event.destination_text ?? '' : '駅名、住所を入力'}
+                        helperText="入力後に検索を押し、候補から1件選んでください"
+                        required={event.case_type === 'noriai'}
+                        defaultText={focusedVehicleOffer.start_location_text}
+                        defaultLat={focusedVehicleOffer.start_lat}
+                        defaultLng={focusedVehicleOffer.start_lng}
+                      />
+
+                      <div>
+                        <label htmlFor="my-capacity" className="mb-1 block text-xs font-medium text-slate-700">定員</label>
+                        <input
+                          id="my-capacity"
+                          name="capacity"
+                          type="number"
+                          min="1"
+                          required
+                          defaultValue={focusedVehicleOffer.capacity}
+                          className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600"
+                      >
+                        運転手を更新
+                      </button>
+                    </form>
+
+                    <form action={deleteVehicleOffer}>
+                      <input type="hidden" name="eventId" value={event.id} />
+                      <input type="hidden" name="vehicleOfferId" value={focusedVehicleOffer.id} />
+                      <input
+                        type="hidden"
+                        name="returnTo"
+                        value={buildParticipantReturnPath(event.id, {
+                          memberId: focusedMember?.id,
+                        })}
+                      />
+                      <button
+                        type="submit"
+                        className="inline-flex w-full justify-center rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                      >
+                        運転手を削除
+                      </button>
+                    </form>
                   </div>
-
-                  <PlaceSearchSelectInput
-                    label={vehicleStartLabel}
-                    textName="startLocationText"
-                    latName="startLat"
-                    lngName="startLng"
-                    placeholder={event.case_type === 'sougei' ? event.destination_text ?? '' : '駅名、住所を入力'}
-                    helperText="入力後に検索を押し、候補から1件選んでください"
-                    required={event.case_type === 'noriai'}
-                    defaultText={focusedVehicleOffer.start_location_text}
-                    defaultLat={focusedVehicleOffer.start_lat}
-                    defaultLng={focusedVehicleOffer.start_lng}
-                  />
-
-                  <div>
-                    <label htmlFor="my-capacity" className="mb-2 block text-sm font-medium text-slate-700">
-                      定員
-                    </label>
-                    <input
-                      id="my-capacity"
-                      name="capacity"
-                      type="number"
-                      min="1"
-                      required
-                      defaultValue={focusedVehicleOffer.capacity}
-                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-base font-bold text-white transition hover:bg-slate-800"
-                  >
-                    この内容で更新する
-                  </button>
-                </form>
-
-                <form action={deleteVehicleOffer} className="mt-3">
-                  <input type="hidden" name="eventId" value={event.id} />
-                  <input type="hidden" name="vehicleOfferId" value={focusedVehicleOffer.id} />
-                  <input
-                    type="hidden"
-                    name="returnTo"
-                    value={buildParticipantReturnPath(event.id, {
-                      memberId: focusedMember?.id,
-                    })}
-                  />
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                  >
-                    この運転手登録を削除する
-                  </button>
-                </form>
+                </details>
               </section>
             ) : null}
           </section>
@@ -627,17 +617,6 @@ export default async function ParticipantEventPage({
                 最新化は管理者側で実行してください。公開用ページでも内容確認はできます。
               </p>
             </div>
-
-            <form action={executePlan}>
-              <input type="hidden" name="eventId" value={event.id} />
-              <input type="hidden" name="returnTo" value={participantPath} />
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                配車結果を更新する
-              </button>
-            </form>
           </div>
 
           {routePlansError ? (
