@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { getOrCreateEventOwnerId } from '../lib/eventOwner'
 import { geocodeAddress } from '../lib/geocode'
 import {
   buildSimplePlan,
@@ -304,6 +305,7 @@ export async function createEvent(formData: FormData): Promise<void> {
   }
 
   const normalizedDestinationText = normalizeOptionalText(destinationText)
+  const ownerId = await getOrCreateEventOwnerId()
 
   const destinationCoords = await resolveCoordinatesFromInput(
     normalizedDestinationText,
@@ -323,6 +325,7 @@ export async function createEvent(formData: FormData): Promise<void> {
         destination_place_id: destinationPlaceId,
         event_at: eventAt,
         plan_is_latest: false,
+        owner_id: ownerId,
       },
     ])
     .select('id')
