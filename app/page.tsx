@@ -77,13 +77,14 @@ function Icon({ type }: { type: CardIcon }) {
 
 function ModeImageIcon({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="h-60 w-60 max-w-full">
+    <div className="w-full">
       <Image
         src={src}
         alt={alt}
-        width={240}
-        height={240}
-        className="h-60 w-60 max-w-full rounded-2xl border border-slate-200 bg-white object-contain p-2 shadow-sm"
+        width={1000}
+        height={700}
+        sizes="(min-width: 640px) 50vw, 100vw"
+        className="h-auto w-full rounded-2xl border border-slate-200 bg-white object-contain p-2 shadow-sm"
       />
     </div>
   )
@@ -175,13 +176,20 @@ export default async function Home() {
           <h2 id="how-title" className="text-3xl font-extrabold tracking-tight text-slate-900">
             使い方は簡単3ステップ
           </h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {steps.map((step) => (
-              <article key={step.title} className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5">
-                <Icon type={step.icon} />
-                <h3 className="mt-4 text-lg font-bold text-slate-900">{step.title}</h3>
-                <p className="mt-2 text-base font-medium leading-7 text-slate-700">{step.body}</p>
-              </article>
+          <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-center md:gap-3">
+            {steps.map((step, index) => (
+              <div key={step.title} className="contents md:flex md:items-center md:gap-3">
+                <article className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5 md:flex-1">
+                  <Icon type={step.icon} />
+                  <h3 className="mt-4 text-lg font-bold text-slate-900">{step.title}</h3>
+                  <p className="mt-2 text-base font-medium leading-7 text-slate-700">{step.body}</p>
+                </article>
+                {index < steps.length - 1 ? (
+                  <span className="hidden text-3xl font-bold text-emerald-400 md:inline" aria-hidden>
+                    →
+                  </span>
+                ) : null}
+              </div>
             ))}
           </div>
         </section>
