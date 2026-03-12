@@ -2,12 +2,15 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import Image from 'next/image'
 import Link from 'next/link'
+import Script from 'next/script'
 import './globals.css'
 
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
 })
+
+const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim()
 
 export const metadata: Metadata = {
   title: 'ノッテコ',
@@ -22,6 +25,16 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={inter.className}>
+        {adsenseClientId ? (
+          <Script
+            id="adsense-loader"
+            async
+            strategy="afterInteractive"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
+            crossOrigin="anonymous"
+          />
+        ) : null}
+
         <div className="min-h-screen bg-white">
           <header className="border-b border-slate-300 bg-[#F4F7F2]">
             <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-3 sm:px-6 lg:px-8">
@@ -37,7 +50,25 @@ export default function RootLayout({
               </Link>
             </div>
           </header>
+
           {children}
+
+          <footer className="border-t border-slate-200 bg-slate-50">
+            <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-sm text-slate-600 sm:px-6 lg:px-8">
+              <p>© {new Date().getFullYear()} Notteco</p>
+              <nav className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <Link href="/terms" className="hover:text-slate-900 hover:underline">
+                  利用規約
+                </Link>
+                <Link href="/privacy" className="hover:text-slate-900 hover:underline">
+                  プライバシーポリシー
+                </Link>
+                <Link href="/contact" className="hover:text-slate-900 hover:underline">
+                  お問い合わせ
+                </Link>
+              </nav>
+            </div>
+          </footer>
         </div>
       </body>
     </html>
