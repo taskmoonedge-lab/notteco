@@ -77,16 +77,14 @@ function Icon({ type }: { type: CardIcon }) {
 
 function ModeImageIcon({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="relative h-20 w-20">
+    <div className="h-60 w-60 max-w-full">
       <Image
         src={src}
         alt={alt}
-        width={80}
-        height={80}
-        className="h-20 w-20 rounded-2xl border border-slate-200 bg-white object-contain p-1 shadow-sm"
+        width={240}
+        height={240}
+        className="h-60 w-60 max-w-full rounded-2xl border border-slate-200 bg-white object-contain p-2 shadow-sm"
       />
-      <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-orange-300" />
-      <span className="absolute -bottom-1 -left-1 h-2.5 w-2.5 rounded-full bg-sky-300" />
     </div>
   )
 }
