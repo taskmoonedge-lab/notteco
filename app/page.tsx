@@ -77,8 +77,14 @@ function Icon({ type }: { type: CardIcon }) {
 
 function ModeImageIcon({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="relative h-14 w-14">
-      <Image src={src} alt={alt} width={56} height={56} className="h-14 w-14 rounded-2xl object-cover shadow-sm" />
+    <div className="relative h-20 w-20">
+      <Image
+        src={src}
+        alt={alt}
+        width={80}
+        height={80}
+        className="h-20 w-20 rounded-2xl border border-slate-200 bg-white object-contain p-1 shadow-sm"
+      />
       <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-orange-300" />
       <span className="absolute -bottom-1 -left-1 h-2.5 w-2.5 rounded-full bg-sky-300" />
     </div>
@@ -151,14 +157,14 @@ export default async function Home() {
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <article className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <ModeImageIcon src="/notteco-app/noriai.png" alt="ノリアイの説明画像" />
+              <ModeImageIcon src="/noriai.png" alt="ノリアイの説明画像" />
               <h3 className="mt-4 text-lg font-bold text-slate-900">ノリアイ（相乗り）</h3>
               <p className="mt-2 text-base font-medium leading-7 text-slate-700">
                 同じ目的地に向かうグループに。誰がどの車に乗るかを整理し、移動連絡をシンプルにします。
               </p>
             </article>
             <article className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <ModeImageIcon src="/notteco-app/sougei.png" alt="ソウゲイの説明画像" />
+              <ModeImageIcon src="/sougei.png" alt="ソウゲイの説明画像" />
               <h3 className="mt-4 text-lg font-bold text-slate-900">ソウゲイ（送迎）</h3>
               <p className="mt-2 text-base font-medium leading-7 text-slate-700">
                 共通基点からの送迎に。複数地点への送迎先を整理し、当日の連絡ミスや抜け漏れを減らします。
