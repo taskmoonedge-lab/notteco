@@ -1,7 +1,7 @@
 import {
+  calculateDriverMemberAffinityCost,
   calculateAssignmentMetrics,
   calculateInsertionCost,
-  distanceMeters,
   getMemberAssignPoint,
   getVehicleOriginPoint,
   optimizeMembersForVehicle,
@@ -207,8 +207,21 @@ export function buildSimplePlan(
   }))
 
   const unassignedMembers: EventMemberRecord[] = []
+  const sortedMembers = [...members].sort((a, b) => {
+    const bestCostA = assignments.reduce((best, assignment) => {
+      const cost = calculateDriverMemberAffinityCost(event, assignment.vehicle, a)
+      return Math.min(best, cost)
+    }, Infinity)
 
-  for (const member of members) {
+    const bestCostB = assignments.reduce((best, assignment) => {
+      const cost = calculateDriverMemberAffinityCost(event, assignment.vehicle, b)
+      return Math.min(best, cost)
+    }, Infinity)
+
+    return bestCostB - bestCostA
+  })
+
+  for (const member of sortedMembers) {
     const memberPoint = getMemberAssignPoint(event, member)
     if (!memberPoint) {
       unassignedMembers.push(member)
@@ -231,14 +244,13 @@ export function buildSimplePlan(
         member
       )
 
-      const tieBreaker = distanceMeters(
-        memberPoint.lat,
-        memberPoint.lng,
-        vehicleOrigin.lat,
-        vehicleOrigin.lng
+      const affinityCost = calculateDriverMemberAffinityCost(
+        event,
+        assignment.vehicle,
+        member
       )
 
-      const comparableCost = insertionCost + tieBreaker / 1000000
+      const comparableCost = insertionCost + affinityCost * 0.35
 
       if (comparableCost < bestCost) {
         bestCost = comparableCost

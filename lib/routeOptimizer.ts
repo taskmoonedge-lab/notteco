@@ -9,6 +9,17 @@ type Point = {
   lng: number
 }
 
+function projectPointToMeters(origin: Point, point: Point): { x: number; y: number } {
+  const latRad = toRadians((origin.lat + point.lat) / 2)
+  const metersPerDegLat = 111_132
+  const metersPerDegLng = 111_320 * Math.cos(latRad)
+
+  return {
+    x: (point.lng - origin.lng) * metersPerDegLng,
+    y: (point.lat - origin.lat) * metersPerDegLat,
+  }
+}
+
 function toRadians(value: number): number {
   return (value * Math.PI) / 180
 }
@@ -104,6 +115,68 @@ export function getFinalPoint(event: EventRecord): Point | null {
   }
 
   return null
+}
+
+export function calculateDriverMemberAffinityCost(
+  event: EventRecord,
+  vehicle: VehicleOfferRecord,
+  member: EventMemberRecord
+): number {
+  const origin = getVehicleOriginPoint(event, vehicle)
+  const memberPoint = getMemberAssignPoint(event, member)
+
+  if (!origin || !memberPoint) {
+    return Infinity
+  }
+
+  const proximityCost = distanceMeters(
+    origin.lat,
+    origin.lng,
+    memberPoint.lat,
+    memberPoint.lng
+  )
+
+  const finalPoint = getFinalPoint(event)
+  if (!finalPoint) {
+    return proximityCost
+  }
+
+  const destinationVector = projectPointToMeters(origin, finalPoint)
+  const memberVector = projectPointToMeters(origin, memberPoint)
+
+  const destinationMagnitude = Math.hypot(destinationVector.x, destinationVector.y)
+  const memberMagnitude = Math.hypot(memberVector.x, memberVector.y)
+
+  if (destinationMagnitude < 1 || memberMagnitude < 1) {
+    return proximityCost
+  }
+
+  const dot =
+    destinationVector.x * memberVector.x +
+    destinationVector.y * memberVector.y
+  const projectionMeters = dot / destinationMagnitude
+
+  const lateralMeters =
+    Math.abs(
+      destinationVector.x * memberVector.y -
+        destinationVector.y * memberVector.x
+    ) / destinationMagnitude
+
+  const alignment = dot / (destinationMagnitude * memberMagnitude)
+  const behindPenalty = projectionMeters < 0 ? Math.abs(projectionMeters) * 1.8 : 0
+  const overshootPenalty =
+    projectionMeters > destinationMagnitude * 1.2
+      ? (projectionMeters - destinationMagnitude * 1.2) * 1.4
+      : 0
+  const alignmentPenalty = alignment < 0 ? Math.abs(alignment) * 7_500 : 0
+
+  return (
+    proximityCost +
+    lateralMeters * 1.25 +
+    behindPenalty +
+    overshootPenalty +
+    alignmentPenalty
+  )
 }
 
 function routeDistanceForOrder(
