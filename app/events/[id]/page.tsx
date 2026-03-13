@@ -4,7 +4,6 @@ import { supabase } from '../../../lib/supabase'
 import { buildGoogleMapsDirectionsUrl } from '../../../lib/maps'
 import { buildNoriaiTimeline } from '../../../lib/planTimeline'
 import {
-  buildSimplePlan,
   type EventMemberRecord,
   type EventRecord,
   type VehicleOfferRecord,
@@ -180,7 +179,21 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
   const safeVehicleOffers = vehicleOffers ?? []
   const safeRoutePlans = routePlans ?? []
 
-  const { assignments, unassignedMembers } = buildSimplePlan(event, safeMembers, safeVehicleOffers)
+  const assignedMemberVehicleById = new Map<string, string>()
+
+  safeRoutePlans.forEach((plan, index) => {
+    const vehicleLabel = `車${index + 1}`
+    const orderedMemberIds = Array.isArray(plan.ordered_member_ids) ? plan.ordered_member_ids : []
+
+    orderedMemberIds.forEach((memberId) => {
+      if (typeof memberId !== 'string' || !memberId || assignedMemberVehicleById.has(memberId)) return
+      assignedMemberVehicleById.set(memberId, vehicleLabel)
+    })
+  })
+
+  const assignedMembersCount = assignedMemberVehicleById.size
+  const unassignedMembers = safeMembers.filter((member) => !assignedMemberVehicleById.has(member.id))
+  const unassignedMembersCount = safeRoutePlans.length > 0 ? unassignedMembers.length : safeMembers.length
 
   const eventBaseLabel = '共通目的地'
   const eventTimeLabel = '目標到着時間'
@@ -195,7 +208,6 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
   const totalCapacity = safeVehicleOffers.reduce((sum, vehicle) => sum + vehicle.capacity, 0)
   const hasValidEventAt = Boolean(event.event_at && !Number.isNaN(new Date(event.event_at).getTime()))
-  const assignedMembersCount = assignments.reduce((sum, assignment) => sum + assignment.members.length, 0)
   const totalParticipants = safeMembers.length + safeVehicleOffers.length
   const adminPath = `/admin/events/${event.id}`
   const participantPath = `/e/${event.id}`
@@ -252,8 +264,8 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
             <div className="grid grid-cols-2 gap-3 p-8">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">イベント参加者</p><p className="mt-1 text-lg font-bold text-slate-900">{totalParticipants}人</p></div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">車</p><p className="mt-1 text-lg font-bold text-slate-900">{safeVehicleOffers.length}台</p></div>
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4"><p className="text-xs font-medium text-rose-500">未割当</p><p className="mt-1 text-lg font-bold text-rose-600">{unassignedMembers.length}人</p></div>
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4"><p className="text-xs font-medium text-emerald-600">配車済み参加者</p><p className="mt-1 text-lg font-bold text-emerald-700">{assignedMembersCount}人</p></div>
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4"><p className="text-xs font-medium text-rose-500">未割当</p><p className="mt-1 text-lg font-bold text-rose-600">{unassignedMembersCount}人</p></div>
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4"><p className="text-xs font-medium text-emerald-600">配車済み搭乗者</p><p className="mt-1 text-lg font-bold text-emerald-700">{assignedMembersCount}人</p></div>
               <div className="col-span-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">総定員</p><p className="mt-1 text-lg font-bold text-slate-900">{totalCapacity}人</p></div>
             </div>
           </div>
@@ -456,12 +468,20 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
               <ul className="mt-6 space-y-4">
                 {safeMembers.map((member) => (
                   <li key={member.id} className="rounded-2xl border border-slate-200 bg-white p-5">
+                    {(() => {
+                      const assignedVehicle = assignedMemberVehicleById.get(member.id)
+                      const statusLabel = assignedVehicle ? `割当済（${assignedVehicle}）` : '未割当'
+                      const statusClassName = assignedVehicle ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-600 bg-rose-50 border-rose-200'
+
+                      return (
                     <div className="flex flex-col gap-5">
-                      <div><div className="flex items-center gap-2"><p className="text-base font-semibold text-slate-900">{member.name}</p></div><div className="mt-4 space-y-2 text-sm text-slate-600"><p>{memberStartLabel}: {member.start_location_text || (event.case_type === 'sougei' ? '共通基点を使用' : '未設定')}</p>{event.case_type === 'sougei' ? <p>到着地点: {member.destination_text || '未設定'}</p> : null}</div></div>
+                      <div><div className="flex items-center gap-2"><p className="text-base font-semibold text-slate-900">{member.name}</p>{safeRoutePlans.length > 0 ? <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusClassName}`}>ステータス: {statusLabel}</span> : null}</div><div className="mt-4 space-y-2 text-sm text-slate-600"><p>{memberStartLabel}: {member.start_location_text || (event.case_type === 'sougei' ? '共通基点を使用' : '未設定')}</p>{event.case_type === 'sougei' ? <p>到着地点: {member.destination_text || '未設定'}</p> : null}</div></div>
                       <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><summary className="cursor-pointer list-none text-sm font-semibold text-slate-900">この搭乗者を編集</summary><div className="mt-4 space-y-3"><form action={updateEventMember} className="space-y-3"><input type="hidden" name="eventId" value={event.id} /><input type="hidden" name="returnTo" value={adminPath} /><input type="hidden" name="memberId" value={member.id} /><div><label className="mb-1 block text-xs font-medium text-slate-700">搭乗者名</label><input name="name" type="text" required defaultValue={member.name} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100" /></div><PlaceSearchSelectInput label={memberStartLabel} textName="startLocationText" latName="startLat" lngName="startLng" defaultText={member.start_location_text} defaultLat={member.start_lat} defaultLng={member.start_lng} placeholder={event.case_type === 'sougei' ? event.destination_text ?? '' : '駅名、住所を入力'} helperText="入力後に検索を押し、候補から1件選んでください" required={event.case_type === 'noriai'} />{event.case_type === 'sougei' ? (
 <PlaceSearchSelectInput label="到着地点" textName="destinationText" latName="destinationLat" lngName="destinationLng" defaultText={member.destination_text} defaultLat={member.destination_lat} defaultLng={member.destination_lng} placeholder="駅名、住所を入力" helperText="入力後に検索を押し、候補から1件選んでください" required />
 ) : null}<button type="submit" className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600">搭乗者を更新</button></form><form action={deleteEventMember}><input type="hidden" name="eventId" value={event.id} /><input type="hidden" name="returnTo" value={adminPath} /><input type="hidden" name="memberId" value={member.id} /><button type="submit" className="inline-flex w-full justify-center rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50">搭乗者を削除</button></form></div></details>
                     </div>
+                      )
+                    })()}
                   </li>
                 ))}
               </ul>
