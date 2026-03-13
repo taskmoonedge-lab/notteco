@@ -163,14 +163,34 @@ export default async function ParticipantEventPage({
   const hasValidEventAt = Boolean(
     event.event_at && !Number.isNaN(new Date(event.event_at).getTime()),
   );
-  const assignedMembersCount = safeRoutePlans.length
-    ? (safeRoutePlans[0]?.ordered_member_ids?.length ?? 0)
-    : 0;
+  const assignedMemberVehicleById = new Map<string, string>();
+
+  safeRoutePlans.forEach((plan, index) => {
+    const vehicleLabel = `車${index + 1}`;
+    const orderedMemberIds = Array.isArray(plan.ordered_member_ids)
+      ? plan.ordered_member_ids
+      : [];
+
+    orderedMemberIds.forEach((memberId) => {
+      if (
+        typeof memberId !== "string" ||
+        !memberId ||
+        assignedMemberVehicleById.has(memberId)
+      ) {
+        return;
+      }
+
+      assignedMemberVehicleById.set(memberId, vehicleLabel);
+    });
+  });
+
+  const assignedMembersCount = assignedMemberVehicleById.size;
+  const unassignedMembersCount =
+    safeRoutePlans.length > 0
+      ? safeMembers.filter((member) => !assignedMemberVehicleById.has(member.id))
+          .length
+      : safeMembers.length;
   const totalParticipants = safeMembers.length + safeVehicleOffers.length;
-  const unassignedMembersCount = Math.max(
-    safeMembers.length - assignedMembersCount,
-    0,
-  );
   const registerButtonClass =
     "inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-teal-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-teal-600 sm:text-base";
 
@@ -258,7 +278,7 @@ export default async function ParticipantEventPage({
               </div>
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
                 <p className="text-xs font-medium text-emerald-600">
-                  配車済み参加者
+                  配車済み搭乗者
                 </p>
                 <p className="mt-1 text-lg font-bold text-emerald-700">
                   {assignedMembersCount}人
@@ -638,6 +658,13 @@ export default async function ParticipantEventPage({
               <ul className="mt-6 space-y-3">
                 {safeMembers.map((member, index) => {
                   const isFocused = member.id === focusedMemberId;
+                  const assignedVehicle = assignedMemberVehicleById.get(member.id);
+                  const statusLabel = assignedVehicle
+                    ? `割当済（${assignedVehicle}）`
+                    : "未割当";
+                  const statusClassName = assignedVehicle
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    : "text-rose-600 bg-rose-50 border-rose-200";
 
                   return (
                     <li
@@ -656,6 +683,13 @@ export default async function ParticipantEventPage({
                           {isFocused ? (
                             <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                               追加済み
+                            </span>
+                          ) : null}
+                          {safeRoutePlans.length > 0 ? (
+                            <span
+                              className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusClassName}`}
+                            >
+                              ステータス: {statusLabel}
                             </span>
                           ) : null}
                         </div>
