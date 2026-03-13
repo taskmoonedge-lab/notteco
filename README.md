@@ -45,3 +45,122 @@ NEXT_PUBLIC_ADSENSE_CLIENT_ID=ca-pub-xxxxxxxxxxxxxxxx
 ```
 
 The script is loaded globally only when this variable is set.
+
+---
+
+## 最速構成Aでサービス開始する手順（Vercel + Render + Supabase + Cloudflare）
+
+「とにかく早く公開」を目的に、以下の役割分担で進めます。
+
+- **Vercel**: Next.js フロント（このリポジトリ）
+- **Render**: API/バッチなどのバックエンド
+- **Supabase**: PostgreSQL（認証を使う場合も相性が良い）
+- **Cloudflare**: DNS 管理（独自ドメイン接続）
+
+### 0. 事前に決めること（15分）
+
+1. 本番ドメイン（例: `example.com`）
+2. サブドメイン方針
+   - フロント: `app.example.com` または `example.com`
+   - API: `api.example.com`
+3. 本番環境変数名を先に固定
+   - `NEXT_PUBLIC_API_BASE_URL`
+   - `DATABASE_URL`
+   - `JWT_SECRET`
+   - 各種 API キー
+
+---
+
+### 1. Supabase でDBを用意（20〜30分）
+
+1. Supabase で新規プロジェクトを作成
+2. `Project Settings > Database` から接続情報を取得
+3. `sql/` 配下の SQL を Supabase SQL Editor で順に実行
+4. 最低限の確認
+   - テーブルが作成されている
+   - インデックス/制約が適用されている
+   - 接続文字列（`DATABASE_URL`）が控えられている
+
+> ポイント: 本番用と開発用で DB を分けると事故を防げます。
+
+---
+
+### 2. Render にバックエンドをデプロイ（30〜60分）
+
+> このリポジトリと別に API サービスがある前提です。まだ API がない場合は、このステップを後回しにしてフロント先行公開でもOKです。
+
+1. Render で `New Web Service` を作成し GitHub リポジトリを接続
+2. ビルド/起動コマンドを設定
+3. 環境変数を設定
+   - `DATABASE_URL`（Supabase の本番接続）
+   - `JWT_SECRET`
+   - 必要な外部 API キー
+4. デプロイ実行
+5. Render の公開URL（例: `https://xxx.onrender.com`）で疎通確認
+   - `/health` などのヘルスチェックエンドポイントを用意しておく
+
+---
+
+### 3. Vercel にこの Next.js をデプロイ（20〜30分）
+
+1. Vercel に GitHub リポジトリを接続
+2. Framework Preset は `Next.js` を選択
+3. 環境変数を設定（Production / Preview それぞれ）
+   - `NEXT_PUBLIC_API_BASE_URL=https://api.example.com`（仮で Render URL でも可）
+   - `NEXT_PUBLIC_ADSENSE_CLIENT_ID`（使う場合）
+4. 初回デプロイ
+5. Vercel のURLで表示確認
+
+---
+
+### 4. 独自ドメインを Cloudflare 経由で接続（30〜60分）
+
+1. ドメイン取得先（お名前.com 等）でドメインを取得
+2. Cloudflare にドメインを追加
+3. レジストラ側のネームサーバーを Cloudflare 指定値へ変更
+4. Cloudflare DNS でレコード作成
+   - フロント（Vercel）
+     - `CNAME app -> cname.vercel-dns.com`（または Vercel 指示値）
+   - API（Render）
+     - `CNAME api -> <render-domain>`
+5. Vercel 側で `app.example.com`（またはルート）を追加
+6. Render 側で `api.example.com` をカスタムドメイン追加
+7. SSL 有効化確認（通常自動）
+
+---
+
+### 5. 本番リリース前チェック（必須）
+
+1. 主要導線の確認
+   - トップ表示
+   - API連携画面
+   - フォーム送信
+2. 失敗系の確認
+   - API停止時の表示
+   - 404/500
+3. セキュリティ最低限
+   - 秘密情報がクライアントに露出していない
+   - CORS が本番ドメインだけ許可されている
+4. 監視
+   - Vercel/Render のログ確認
+   - 障害通知先（メール or Slack）設定
+
+---
+
+### 6. 最短リリース運用（初月）
+
+- 1日1回: エラーログ確認
+- 週1回: 主要KPI（アクセス・CV・離脱）確認
+- 月1回: 依存パッケージ更新と脆弱性チェック
+
+---
+
+## 最速で進める順番（迷ったらこの通り）
+
+1. Supabase 作成
+2. Vercel へこのリポジトリを先に公開
+3. Render API を追加
+4. Cloudflare で独自ドメイン接続
+5. 本番チェックして告知
+
+この順番なら、**最短で「まず公開」→「段階的に安定化」**ができます。
