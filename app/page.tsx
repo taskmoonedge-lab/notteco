@@ -108,21 +108,22 @@ function formatEventAt(value: string | null): string {
 export default async function Home() {
   const ownerId = await getEventOwnerId()
 
-  const eventsQuery = supabase
-    .from('events')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const buildEventsQuery = () =>
+    supabase
+      .from('events')
+      .select('*')
+      .order('created_at', { ascending: false })
 
   let events: EventListItem[] | null = []
   let error: { message?: string | null; code?: string | null } | null = null
 
   if (ownerId) {
-    const ownerScopedResult = await eventsQuery
+    const ownerScopedResult = await buildEventsQuery()
       .eq('owner_id', ownerId)
       .returns<EventListItem[]>()
 
     if (isUndefinedColumnError(ownerScopedResult.error)) {
-      const fallbackResult = await eventsQuery.returns<EventListItem[]>()
+      const fallbackResult = await buildEventsQuery().returns<EventListItem[]>()
       events = fallbackResult.data
       error = fallbackResult.error
     } else {
