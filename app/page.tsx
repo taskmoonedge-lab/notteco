@@ -4,6 +4,7 @@ import Link from 'next/link'
 import ModeSwitchFields from '../components/ModeSwitchFields'
 import { supabase } from '../lib/supabase'
 import { getEventOwnerId } from '../lib/eventOwner'
+import { isUndefinedColumnError } from '../lib/supabaseErrors'
 import { createEvent } from './actions'
 
 export const metadata: Metadata = {
@@ -112,9 +113,23 @@ export default async function Home() {
     .select('*')
     .order('created_at', { ascending: false })
 
-  const { data: events, error } = ownerId
-    ? await eventsQuery.eq('owner_id', ownerId).returns<EventListItem[]>()
-    : { data: [], error: null }
+  let events: EventListItem[] | null = []
+  let error: { message?: string | null; code?: string | null } | null = null
+
+  if (ownerId) {
+    const ownerScopedResult = await eventsQuery
+      .eq('owner_id', ownerId)
+      .returns<EventListItem[]>()
+
+    if (isUndefinedColumnError(ownerScopedResult.error)) {
+      const fallbackResult = await eventsQuery.returns<EventListItem[]>()
+      events = fallbackResult.data
+      error = fallbackResult.error
+    } else {
+      events = ownerScopedResult.data
+      error = ownerScopedResult.error
+    }
+  }
 
   const safeEvents = events ?? []
 
