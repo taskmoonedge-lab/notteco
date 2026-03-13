@@ -93,21 +93,62 @@ function tryRebalanceAssignments(
 ): void {
   const maxIterations = 80
 
-  function getOptimizedDistance(
+  function membersKey(members: EventMemberRecord[]): string {
+    return members.map((member) => member.id).join('|')
+  }
+
+  function getDistanceWithCache(
+    distanceCache: Map<string, number>,
     vehicle: VehicleOfferRecord,
     members: EventMemberRecord[]
-  ): number | null {
+  ): number {
+    const cacheKey = `${vehicle.id}:${membersKey(members)}`
+    const cached = distanceCache.get(cacheKey)
+    if (cached != null) {
+      return cached
+    }
+
     const optimizedMembers = optimizeMembersForVehicle(event, vehicle, members)
     const metrics = calculateAssignmentMetrics(event, vehicle, optimizedMembers)
-    return metrics.totalDistanceMeters
+    const distance = metrics.totalDistanceMeters ?? 0
+    distanceCache.set(cacheKey, distance)
+    return distance
+  }
+
+  function evaluateAssignmentsObjective(
+    nextAssignments: Assignment[],
+    distanceCache: Map<string, number>
+  ): number {
+    const distances = nextAssignments.map((assignment) =>
+      getDistanceWithCache(distanceCache, assignment.vehicle, assignment.members)
+    )
+
+    const totalDistance = distances.reduce((sum, distance) => sum + distance, 0)
+    const maxDistance = distances.length > 0 ? Math.max(...distances) : 0
+    const minDistance = distances.length > 0 ? Math.min(...distances) : 0
+    const imbalancePenalty = Math.max(maxDistance - minDistance, 0) * 0.08
+
+    return totalDistance + imbalancePenalty
   }
 
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    const distanceCache = new Map<string, number>()
+    const currentScore = evaluateAssignmentsObjective(assignments, distanceCache)
+
     let bestMove:
       | {
+          type: 'move'
           donorIndex: number
           receiverIndex: number
           memberIndex: number
+          improvement: number
+        }
+      | {
+          type: 'swap'
+          donorIndex: number
+          receiverIndex: number
+          donorMemberIndex: number
+          receiverMemberIndex: number
           improvement: number
         }
       | null = null
@@ -120,51 +161,92 @@ function tryRebalanceAssignments(
         if (donorIndex === receiverIndex) continue
 
         const receiver = assignments[receiverIndex]
-        if (receiver.members.length >= receiver.vehicle.capacity) continue
 
         const donorOrigin = getVehicleOriginPoint(event, donor.vehicle)
         const receiverOrigin = getVehicleOriginPoint(event, receiver.vehicle)
         if (!donorOrigin || !receiverOrigin) continue
 
-        const donorCurrentDistance = getOptimizedDistance(
-          donor.vehicle,
-          donor.members
-        )
-        const receiverCurrentDistance = getOptimizedDistance(
-          receiver.vehicle,
-          receiver.members
-        )
+        if (receiver.members.length < receiver.vehicle.capacity) {
+          for (let memberIndex = 0; memberIndex < donor.members.length; memberIndex += 1) {
+            const movingMember = donor.members[memberIndex]
+            const donorNextMembers = donor.members.filter((_, index) => index !== memberIndex)
+            const receiverNextMembers = [...receiver.members, movingMember]
 
-        for (let memberIndex = 0; memberIndex < donor.members.length; memberIndex += 1) {
-          const movingMember = donor.members[memberIndex]
-          const donorNextMembers = donor.members.filter((_, index) => index !== memberIndex)
-          const receiverNextMembers = [...receiver.members, movingMember]
+            const candidateAssignments = assignments.map((assignment, index) => {
+              if (index === donorIndex) {
+                return {
+                  ...assignment,
+                  members: donorNextMembers,
+                }
+              }
 
-          const donorNextDistance = getOptimizedDistance(
-            donor.vehicle,
-            donorNextMembers
-          )
-          const receiverNextDistance = getOptimizedDistance(
-            receiver.vehicle,
-            receiverNextMembers
-          )
+              if (index === receiverIndex) {
+                return {
+                  ...assignment,
+                  members: receiverNextMembers,
+                }
+              }
 
-          const currentTotal =
-            (donorCurrentDistance ?? 0) +
-            (receiverCurrentDistance ?? 0)
+              return assignment
+            })
 
-          const nextTotal =
-            (donorNextDistance ?? 0) +
-            (receiverNextDistance ?? 0)
+            const nextScore = evaluateAssignmentsObjective(candidateAssignments, distanceCache)
+            const improvement = currentScore - nextScore
 
-          const improvement = currentTotal - nextTotal
-
-          if (improvement > 0) {
-            if (!bestMove || improvement > bestMove.improvement) {
+            if (improvement > 0 && (!bestMove || improvement > bestMove.improvement)) {
               bestMove = {
+                type: 'move',
                 donorIndex,
                 receiverIndex,
                 memberIndex,
+                improvement,
+              }
+            }
+          }
+        }
+
+        if (receiver.members.length === 0) continue
+
+        for (let donorMemberIndex = 0; donorMemberIndex < donor.members.length; donorMemberIndex += 1) {
+          for (let receiverMemberIndex = 0; receiverMemberIndex < receiver.members.length; receiverMemberIndex += 1) {
+            const donorMember = donor.members[donorMemberIndex]
+            const receiverMember = receiver.members[receiverMemberIndex]
+
+            const donorNextMembers = donor.members.map((member, index) =>
+              index === donorMemberIndex ? receiverMember : member
+            )
+            const receiverNextMembers = receiver.members.map((member, index) =>
+              index === receiverMemberIndex ? donorMember : member
+            )
+
+            const candidateAssignments = assignments.map((assignment, index) => {
+              if (index === donorIndex) {
+                return {
+                  ...assignment,
+                  members: donorNextMembers,
+                }
+              }
+
+              if (index === receiverIndex) {
+                return {
+                  ...assignment,
+                  members: receiverNextMembers,
+                }
+              }
+
+              return assignment
+            })
+
+            const nextScore = evaluateAssignmentsObjective(candidateAssignments, distanceCache)
+            const improvement = currentScore - nextScore
+
+            if (improvement > 0 && (!bestMove || improvement > bestMove.improvement)) {
+              bestMove = {
+                type: 'swap',
+                donorIndex,
+                receiverIndex,
+                donorMemberIndex,
+                receiverMemberIndex,
                 improvement,
               }
             }
@@ -177,12 +259,26 @@ function tryRebalanceAssignments(
 
     const donor = assignments[bestMove.donorIndex]
     const receiver = assignments[bestMove.receiverIndex]
-    const movingMember = donor.members[bestMove.memberIndex]
 
-    donor.members = donor.members.filter((_, index) => index !== bestMove.memberIndex)
-    receiver.members = [...receiver.members, movingMember]
+    if (bestMove.type === 'move') {
+      const movingMember = donor.members[bestMove.memberIndex]
+      donor.members = donor.members.filter((_, index) => index !== bestMove.memberIndex)
+      receiver.members = [...receiver.members, movingMember]
+      continue
+    }
+
+    const donorMember = donor.members[bestMove.donorMemberIndex]
+    const receiverMember = receiver.members[bestMove.receiverMemberIndex]
+
+    donor.members = donor.members.map((member, index) =>
+      index === bestMove.donorMemberIndex ? receiverMember : member
+    )
+    receiver.members = receiver.members.map((member, index) =>
+      index === bestMove.receiverMemberIndex ? donorMember : member
+    )
   }
 }
+
 
 export function buildSimplePlan(
   event: EventRecord,
