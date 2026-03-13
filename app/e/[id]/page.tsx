@@ -62,7 +62,7 @@ function formatCreatedAt(value: string | null): string {
   return new Date(value).toLocaleString("ja-JP");
 }
 
-function formatEventAt(value: string | null): string {
+function formatEventAt(value: string | null | undefined): string {
   if (!value) return "未設定";
   return new Date(value).toLocaleString("ja-JP");
 }
