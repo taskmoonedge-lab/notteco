@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { getOrCreateEventOwnerId } from '../lib/eventOwner'
 import { geocodeAddress } from '../lib/geocode'
+import { isUndefinedColumnError } from '../lib/supabaseErrors'
 import {
   buildSimplePlan,
   type EventMemberRecord,
@@ -313,23 +314,44 @@ export async function createEvent(formData: FormData): Promise<void> {
     destinationLng
   )
 
-  const { data, error } = await supabase
+  const baseEventPayload = {
+    title: title.trim(),
+    case_type: caseType,
+    destination_text: normalizedDestinationText,
+    destination_lat: destinationCoords.lat,
+    destination_lng: destinationCoords.lng,
+    destination_place_id: destinationPlaceId,
+    event_at: eventAt,
+    plan_is_latest: false,
+  }
+
+  let data: { id: string } | null = null
+  let error: { message?: string | null; code?: string | null } | null = null
+
+  const ownerScopedInsert = await supabase
     .from('events')
     .insert([
       {
-        title: title.trim(),
-        case_type: caseType,
-        destination_text: normalizedDestinationText,
-        destination_lat: destinationCoords.lat,
-        destination_lng: destinationCoords.lng,
-        destination_place_id: destinationPlaceId,
-        event_at: eventAt,
-        plan_is_latest: false,
+        ...baseEventPayload,
         owner_id: ownerId,
       },
     ])
     .select('id')
     .single<{ id: string }>()
+
+  if (isUndefinedColumnError(ownerScopedInsert.error)) {
+    const fallbackInsert = await supabase
+      .from('events')
+      .insert([baseEventPayload])
+      .select('id')
+      .single<{ id: string }>()
+
+    data = fallbackInsert.data
+    error = fallbackInsert.error
+  } else {
+    data = ownerScopedInsert.data
+    error = ownerScopedInsert.error
+  }
 
   if (error || !data?.id) {
     console.error('イベント作成エラー:', error?.message ?? 'イベントID取得失敗')
