@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import Image from 'next/image'
 import Link from 'next/link'
-import Script from 'next/script'
 import './globals.css'
 
 const inter = Inter({
@@ -44,15 +43,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={inter.className}>
-        <Script
-          id="adsense-loader"
+      <head>
+        <script
           async
-          strategy="afterInteractive"
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5595141811855549"
           crossOrigin="anonymous"
         />
-
+      </head>
+      <body className={inter.className}>
         <div className="min-h-screen bg-white">
           <header className="border-b border-slate-300 bg-[#F4F7F2]">
             <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-3 sm:px-6 lg:px-8">
