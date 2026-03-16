@@ -4,25 +4,25 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: '/:path*',
+        source: "/:path*",
         has: [
           {
-            type: 'host',
-            value: 'notteco.com',
+            type: "host",
+            value: "app.notteco.com",
           },
         ],
-        destination: 'https://app.notteco.com/:path*',
+        destination: "https://notteco.com/:path*",
         permanent: true,
       },
       {
-        source: '/:path*',
+        source: "/:path*",
         has: [
           {
-            type: 'host',
-            value: 'www.notteco.com',
+            type: "host",
+            value: "www.notteco.com",
           },
         ],
-        destination: 'https://app.notteco.com/:path*',
+        destination: "https://notteco.com/:path*",
         permanent: true,
       },
     ];
