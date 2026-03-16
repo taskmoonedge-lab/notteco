@@ -20,7 +20,7 @@ export default function InviteActions({ eventTitle, participantPath }: InviteAct
     return `${eventTitle} の参加登録はこちらです
 ${displayedInviteUrl}
 
-名前・出発地・車を出せるかを入力してください。`
+車だしできる方は運転手、それ以外の方は搭乗者として登録してください。`
   }, [eventTitle, displayedInviteUrl])
 
   async function handleCopy(type: 'template') {
@@ -28,7 +28,7 @@ ${displayedInviteUrl}
     const inviteMessage = `${eventTitle} の参加登録はこちらです
 ${inviteUrl}
 
-名前・出発地・車を出せるかを入力してください。`
+車だしできる方は運転手、それ以外の方は搭乗者として登録してください。`
 
     try {
       await navigator.clipboard.writeText(inviteMessage)

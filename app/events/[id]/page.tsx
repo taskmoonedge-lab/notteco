@@ -263,7 +263,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
             <div className="grid grid-cols-2 gap-3 p-8">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">イベント参加者</p><p className="mt-1 text-lg font-bold text-slate-900">{totalParticipants}人</p></div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">車</p><p className="mt-1 text-lg font-bold text-slate-900">{safeVehicleOffers.length}台</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">車/運転手</p><p className="mt-1 text-lg font-bold text-slate-900">{safeVehicleOffers.length}台/人</p></div>
               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4"><p className="text-xs font-medium text-rose-500">未割当</p><p className="mt-1 text-lg font-bold text-rose-600">{unassignedMembersCount}人</p></div>
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4"><p className="text-xs font-medium text-emerald-600">配車済み搭乗者</p><p className="mt-1 text-lg font-bold text-emerald-700">{assignedMembersCount}人</p></div>
               <div className="col-span-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-medium text-slate-500">総定員</p><p className="mt-1 text-lg font-bold text-slate-900">{totalCapacity}人</p></div>

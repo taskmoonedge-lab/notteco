@@ -265,9 +265,9 @@ export default async function ParticipantEventPage({
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-xs font-medium text-slate-500">車</p>
+                <p className="text-xs font-medium text-slate-500">車/運転手</p>
                 <p className="mt-1 text-lg font-bold text-slate-900">
-                  {safeVehicleOffers.length}台
+                  {safeVehicleOffers.length}台/人
                 </p>
               </div>
               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4">
