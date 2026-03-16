@@ -164,3 +164,16 @@ The script is loaded globally only when this variable is set.
 5. 本番チェックして告知
 
 この順番なら、**最短で「まず公開」→「段階的に安定化」**ができます。
+
+## SEO setup (recommended)
+
+For production, set the site URL so canonical tags, robots.txt and sitemap.xml point to your real domain:
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://your-domain.example
+```
+
+After deployment, verify these endpoints are reachable:
+
+- `/robots.txt`
+- `/sitemap.xml`

@@ -11,10 +11,31 @@ const inter = Inter({
 })
 
 const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim()
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'http://localhost:3000'
 
 export const metadata: Metadata = {
-  title: 'ノッテコ',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'ノッテコ',
+    template: '%s | ノッテコ',
+  },
   description: '乗り合いも送迎も、スマートに。',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'ノッテコ',
+    description: '乗り合いも送迎も、スマートに。',
+    type: 'website',
+    locale: 'ja_JP',
+    url: '/',
+    siteName: 'ノッテコ',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ノッテコ',
+    description: '乗り合いも送迎も、スマートに。',
+  },
 }
 
 export default function RootLayout({
