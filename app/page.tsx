@@ -12,6 +12,18 @@ export const metadata: Metadata = {
   title: 'Notteco（ノッテコ） | 乗り合い・送迎イベントをかんたん作成',
   description:
     'Nottecoは、リンク共有だけで参加者を集め、AIが最適なルート・配車を自動作成できる乗り合い・送迎調整サービスです。',
+  alternates: {
+    canonical: '/',
+  },
+  keywords: [
+    '乗り合い',
+    '相乗り',
+    '送迎',
+    'イベント調整',
+    '配車',
+    '幹事',
+    '移動計画',
+  ],
 }
 
 type CardIcon = 'create' | 'join' | 'plan' | 'golf' | 'snow' | 'bbq' | 'live' | 'club' | 'night'
