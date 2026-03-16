@@ -12,7 +12,7 @@ const inter = Inter({
 
 const adsenseClientId =
   process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim() || 'ca-pub-5595141811855549'
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'http://localhost:3000'
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://notteco.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
