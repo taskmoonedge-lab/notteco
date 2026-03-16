@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import Image from 'next/image'
 import Link from 'next/link'
-import Script from 'next/script'
 import './globals.css'
 
 const inter = Inter({
@@ -10,8 +9,6 @@ const inter = Inter({
   display: 'swap',
 })
 
-const adsenseClientId =
-  process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim() || 'ca-pub-5595141811855549'
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://notteco.com'
 
 export const metadata: Metadata = {
@@ -46,17 +43,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5595141811855549"
+          crossOrigin="anonymous"
+        ></script>
+      </head>
       <body className={inter.className}>
-        {adsenseClientId ? (
-          <Script
-            id="adsense-loader"
-            async
-            strategy="afterInteractive"
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
-            crossOrigin="anonymous"
-          />
-        ) : null}
-
         <div className="min-h-screen bg-white">
           <header className="border-b border-slate-300 bg-[#F4F7F2]">
             <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-3 sm:px-6 lg:px-8">
