@@ -1,32 +1,32 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: "/:path*",
+        source: '/:path*',
         has: [
           {
-            type: "host",
-            value: "app.notteco.com",
+            type: 'host',
+            value: 'notteco.com',
           },
         ],
-        destination: "https://notteco.com/:path*",
+        destination: 'https://app.notteco.com/:path*',
         permanent: true,
       },
       {
-        source: "/:path*",
+        source: '/:path*',
         has: [
           {
-            type: "host",
-            value: "www.notteco.com",
+            type: 'host',
+            value: 'www.notteco.com',
           },
         ],
-        destination: "https://notteco.com/:path*",
+        destination: 'https://app.notteco.com/:path*',
         permanent: true,
       },
-    ];
+    ]
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig
