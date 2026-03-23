@@ -23,6 +23,7 @@ export type EventRecord = {
 export type EventMemberRecord = {
   id: string
   name: string
+  can_use_rental_car?: boolean | null
   start_location_text: string | null
   start_lat: number | null
   start_lng: number | null
@@ -398,4 +399,98 @@ export function buildSimplePlan(
     assignments,
     unassignedMembers,
   }
+}
+
+const DEFAULT_RENTAL_CAR_CAPACITY = 3
+const MAX_RENTAL_CAR_SUGGESTIONS = 3
+
+export type RentalCarCandidateSuggestion = {
+  member: EventMemberRecord
+  expectedUnassignedMembers: EventMemberRecord[]
+  expectedTotalDistanceMeters: number
+  unassignedReduction: number
+  distanceDifferenceMeters: number
+}
+
+export function findRentalCarCandidateSuggestions(
+  event: EventRecord,
+  members: EventMemberRecord[],
+  vehicles: VehicleOfferRecord[]
+): RentalCarCandidateSuggestion[] {
+  const basePlan = buildSimplePlan(event, members, vehicles)
+
+  if (basePlan.unassignedMembers.length === 0) {
+    return []
+  }
+
+  const candidateMembers = basePlan.unassignedMembers.filter(
+    (member) => member.can_use_rental_car === true
+  )
+
+  if (candidateMembers.length === 0) {
+    return []
+  }
+
+  const baseTotalDistanceMeters = basePlan.assignments.reduce(
+    (sum, assignment) => sum + (assignment.totalDistanceMeters ?? 0),
+    0
+  )
+
+  const suggestions: RentalCarCandidateSuggestion[] = []
+
+  for (const candidate of candidateMembers.slice(0, MAX_RENTAL_CAR_SUGGESTIONS)) {
+    const membersWithoutCandidate = members.filter((member) => member.id !== candidate.id)
+
+    const rentalVehicle: VehicleOfferRecord = {
+      id: `rental-car-candidate-${candidate.id}`,
+      driver_name: `${candidate.name}（レンタカー候補）`,
+      start_location_text: candidate.start_location_text,
+      start_lat: candidate.start_lat,
+      start_lng: candidate.start_lng,
+      start_place_id: candidate.start_place_id,
+      capacity: DEFAULT_RENTAL_CAR_CAPACITY,
+    }
+
+    const nextPlan = buildSimplePlan(event, membersWithoutCandidate, [
+      ...vehicles,
+      rentalVehicle,
+    ])
+
+    const expectedTotalDistanceMeters = nextPlan.assignments.reduce(
+      (sum, assignment) => sum + (assignment.totalDistanceMeters ?? 0),
+      0
+    )
+
+    const nextSuggestion: RentalCarCandidateSuggestion = {
+      member: candidate,
+      expectedUnassignedMembers: nextPlan.unassignedMembers,
+      expectedTotalDistanceMeters,
+      unassignedReduction:
+        basePlan.unassignedMembers.length - nextPlan.unassignedMembers.length,
+      distanceDifferenceMeters:
+        expectedTotalDistanceMeters - baseTotalDistanceMeters,
+    }
+
+    const hasPositiveImpact =
+      nextSuggestion.unassignedReduction > 0 ||
+      (nextSuggestion.unassignedReduction === 0 &&
+        nextSuggestion.distanceDifferenceMeters < 0)
+
+    if (!hasPositiveImpact) continue
+
+    suggestions.push(nextSuggestion)
+  }
+
+  return suggestions.sort((a, b) => {
+    if (
+      a.expectedUnassignedMembers.length !==
+      b.expectedUnassignedMembers.length
+    ) {
+      return (
+        a.expectedUnassignedMembers.length - b.expectedUnassignedMembers.length
+      )
+    }
+
+    return a.expectedTotalDistanceMeters - b.expectedTotalDistanceMeters
+  })
 }
