@@ -329,14 +329,18 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                             {suggestion.expectedUnassignedMembers.length}
                             人見込み / 距離差
                             {suggestion.distanceDifferenceMeters >= 0 ? '+' : ''}
-                            {Math.round(suggestion.distanceDifferenceMeters)}m）
+                            {Math.round(suggestion.distanceDifferenceMeters)}m
+                            {suggestion.unassignedReduction > 0 || suggestion.distanceDifferenceMeters < 0
+                              ? ' / 改善見込みあり'
+                              : ' / 改善見込みなし'}
+                            ）
                           </li>
                         ))}
                       </ol>
                     </div>
                   ) : (
                     <p className="mt-3 text-sm text-amber-900">
-                      レンタカー候補（改善見込みあり）は見つかりませんでした。
+                      レンタカー候補（レンタカー参加可）は見つかりませんでした。
                     </p>
                   )}
                 </div>

@@ -471,26 +471,14 @@ export function findRentalCarCandidateSuggestions(
         expectedTotalDistanceMeters - baseTotalDistanceMeters,
     }
 
-    const hasPositiveImpact =
-      nextSuggestion.unassignedReduction > 0 ||
-      (nextSuggestion.unassignedReduction === 0 &&
-        nextSuggestion.distanceDifferenceMeters < 0)
-
-    if (!hasPositiveImpact) continue
-
     suggestions.push(nextSuggestion)
   }
 
   return suggestions.sort((a, b) => {
-    if (
-      a.expectedUnassignedMembers.length !==
-      b.expectedUnassignedMembers.length
-    ) {
-      return (
-        a.expectedUnassignedMembers.length - b.expectedUnassignedMembers.length
-      )
+    if (a.unassignedReduction !== b.unassignedReduction) {
+      return b.unassignedReduction - a.unassignedReduction
     }
 
-    return a.expectedTotalDistanceMeters - b.expectedTotalDistanceMeters
+    return a.distanceDifferenceMeters - b.distanceDifferenceMeters
   })
 }
