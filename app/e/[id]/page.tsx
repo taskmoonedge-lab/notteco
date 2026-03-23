@@ -357,6 +357,14 @@ export default async function ParticipantEventPage({
                   required
                 />
               ) : null}
+              <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  name="canUseRentalCar"
+                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                />
+                レンタカー参加が可能
+              </label>
 
               <PendingSubmitButton
                 idleLabel="搭乗者を登録する"
@@ -721,6 +729,9 @@ export default async function ParticipantEventPage({
                             )}
                           </p>
                         ) : null}
+                        <p>
+                          レンタカー参加: {member.can_use_rental_car ? "可能" : "不可"}
+                        </p>
                       </div>
                       <details className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
                         <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900">
@@ -783,6 +794,15 @@ export default async function ParticipantEventPage({
                                 required
                               />
                             ) : null}
+                            <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700">
+                              <input
+                                type="checkbox"
+                                name="canUseRentalCar"
+                                defaultChecked={Boolean(member.can_use_rental_car)}
+                                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                              />
+                              レンタカー参加が可能
+                            </label>
                             <button
                               type="submit"
                               className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600"
