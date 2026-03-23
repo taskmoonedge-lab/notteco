@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabase'
 import { buildGoogleMapsDirectionsUrl } from '../../../lib/maps'
 import { buildNoriaiTimeline } from '../../../lib/planTimeline'
 import {
+  findRentalCarCandidateSuggestions,
   type EventMemberRecord,
   type EventRecord,
   type VehicleOfferRecord,
@@ -196,6 +197,14 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
   const assignedMembersCount = assignedMemberVehicleById.size
   const unassignedMembers = safeMembers.filter((member) => !assignedMemberVehicleById.has(member.id))
   const unassignedMembersCount = safeRoutePlans.length > 0 ? unassignedMembers.length : safeMembers.length
+  const rentalCarSuggestions =
+    safeRoutePlans.length > 0 &&
+    Boolean(event.plan_is_latest) &&
+    unassignedMembers.length > 0
+      ? findRentalCarCandidateSuggestions(event, safeMembers, safeVehicleOffers).filter(
+          (suggestion) => unassignedMembers.some((member) => member.id === suggestion.member.id)
+        )
+      : []
 
   const eventBaseLabel = '共通目的地'
   const eventTimeLabel = '目標到着時間'
@@ -307,6 +316,29 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                       <li key={member.id}>{member.name}</li>
                     ))}
                   </ul>
+                  {rentalCarSuggestions.length > 0 ? (
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-white/70 px-3 py-2">
+                      <p className="text-sm font-semibold text-amber-900">
+                        レンタカー候補（最大3名）
+                      </p>
+                      <ol className="mt-2 list-decimal ml-5 space-y-1 text-sm text-amber-900">
+                        {rentalCarSuggestions.map((suggestion) => (
+                          <li key={suggestion.member.id}>
+                            <span className="font-semibold">{suggestion.member.name}</span>
+                            （未割当
+                            {suggestion.expectedUnassignedMembers.length}
+                            人見込み / 距離差
+                            {suggestion.distanceDifferenceMeters >= 0 ? '+' : ''}
+                            {Math.round(suggestion.distanceDifferenceMeters)}m）
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-amber-900">
+                      レンタカー候補（改善見込みあり）は見つかりませんでした。
+                    </p>
+                  )}
                 </div>
               ) : null}
 
@@ -440,6 +472,10 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                   {event.case_type === 'sougei' ? (
                     <PlaceSearchSelectInput label="到着地点" textName="destinationText" latName="destinationLat" lngName="destinationLng" placeholder="駅名、住所を入力" helperText="入力後に検索を押し、候補から1件選んでください" required />
                   ) : null}
+                  <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                    <input type="checkbox" name="canUseRentalCar" className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                    レンタカー参加が可能
+                  </label>
                   <PendingSubmitButton
                     idleLabel="搭乗者を追加する"
                     pendingLabel="搭乗者を追加中..."
@@ -483,10 +519,10 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
                       return (
                     <div className="flex flex-col gap-5">
-                      <div><div className="flex items-center gap-2"><p className="text-base font-semibold text-slate-900">{member.name}</p>{safeRoutePlans.length > 0 ? <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusClassName}`}>ステータス: {statusLabel}</span> : null}</div><div className="mt-4 space-y-2 text-sm text-slate-600"><p>{memberStartLabel}: {member.start_location_text || (event.case_type === 'sougei' ? '共通基点を使用' : '未設定')}</p>{event.case_type === 'sougei' ? <p>到着地点: {member.destination_text || '未設定'}</p> : null}</div></div>
+                      <div><div className="flex items-center gap-2"><p className="text-base font-semibold text-slate-900">{member.name}</p>{safeRoutePlans.length > 0 ? <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusClassName}`}>ステータス: {statusLabel}</span> : null}</div><div className="mt-4 space-y-2 text-sm text-slate-600"><p>{memberStartLabel}: {member.start_location_text || (event.case_type === 'sougei' ? '共通基点を使用' : '未設定')}</p>{event.case_type === 'sougei' ? <p>到着地点: {member.destination_text || '未設定'}</p> : null}<p>レンタカー参加: {member.can_use_rental_car ? '可能' : '不可'}</p></div></div>
                       <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><summary className="cursor-pointer list-none text-sm font-semibold text-slate-900">この搭乗者を編集</summary><div className="mt-4 space-y-3"><form action={updateEventMember} className="space-y-3"><input type="hidden" name="eventId" value={event.id} /><input type="hidden" name="returnTo" value={adminPath} /><input type="hidden" name="memberId" value={member.id} /><div><label className="mb-1 block text-xs font-medium text-slate-700">搭乗者名</label><input name="name" type="text" required defaultValue={member.name} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100" /></div><PlaceSearchSelectInput label={memberStartLabel} textName="startLocationText" latName="startLat" lngName="startLng" defaultText={member.start_location_text} defaultLat={member.start_lat} defaultLng={member.start_lng} placeholder={event.case_type === 'sougei' ? event.destination_text ?? '' : '駅名、住所を入力'} helperText="入力後に検索を押し、候補から1件選んでください" required={event.case_type === 'noriai'} />{event.case_type === 'sougei' ? (
 <PlaceSearchSelectInput label="到着地点" textName="destinationText" latName="destinationLat" lngName="destinationLng" defaultText={member.destination_text} defaultLat={member.destination_lat} defaultLng={member.destination_lng} placeholder="駅名、住所を入力" helperText="入力後に検索を押し、候補から1件選んでください" required />
-) : null}<button type="submit" className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600">搭乗者を更新</button></form><form action={deleteEventMember}><input type="hidden" name="eventId" value={event.id} /><input type="hidden" name="returnTo" value={adminPath} /><input type="hidden" name="memberId" value={member.id} /><button type="submit" className="inline-flex w-full justify-center rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50">搭乗者を削除</button></form></div></details>
+) : null}<label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"><input type="checkbox" name="canUseRentalCar" defaultChecked={Boolean(member.can_use_rental_car)} className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />レンタカー参加が可能</label><button type="submit" className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600">搭乗者を更新</button></form><form action={deleteEventMember}><input type="hidden" name="eventId" value={event.id} /><input type="hidden" name="returnTo" value={adminPath} /><input type="hidden" name="memberId" value={member.id} /><button type="submit" className="inline-flex w-full justify-center rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50">搭乗者を削除</button></form></div></details>
                     </div>
                       )
                     })()}
