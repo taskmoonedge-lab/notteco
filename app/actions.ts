@@ -14,6 +14,13 @@ import {
 } from '../lib/planner'
 import { optimizeAssignmentRoute } from '../lib/routesProvider'
 
+const MAX_EVENT_TITLE_LENGTH = 120
+const MAX_MEMBER_NAME_LENGTH = 80
+const MAX_DRIVER_NAME_LENGTH = 80
+const MAX_LOCATION_TEXT_LENGTH = 255
+const MAX_VEHICLE_CAPACITY = 12
+const DUPLICATE_GUARD_WINDOW_SECONDS = 10
+
 function parseOptionalNumber(value: FormDataEntryValue | null): number | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
@@ -43,6 +50,11 @@ function parseOptionalDateTime(value: FormDataEntryValue | null): string | null 
 function normalizeOptionalText(value: string | null | undefined): string | null {
   const trimmed = (value ?? '').trim()
   return trimmed ? trimmed : null
+}
+
+function isValidTextLength(value: string | null | undefined, max: number): boolean {
+  if (value == null) return true
+  return value.length <= max
 }
 
 function isSameLocationText(
@@ -274,6 +286,44 @@ async function redirectWithNotice(
   redirect(appendNoticeParam(nextPath, notice))
 }
 
+async function ensureMemberBelongsToEvent(
+  memberId: string,
+  eventId: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('event_members')
+    .select('id')
+    .eq('id', memberId)
+    .eq('event_id', eventId)
+    .single<{ id: string }>()
+
+  if (error || !data) {
+    console.error('搭乗者がイベントに紐づいていません:', error?.message ?? memberId)
+    return false
+  }
+
+  return true
+}
+
+async function ensureVehicleBelongsToEvent(
+  vehicleOfferId: string,
+  eventId: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('vehicle_offers')
+    .select('id')
+    .eq('id', vehicleOfferId)
+    .eq('event_id', eventId)
+    .single<{ id: string }>()
+
+  if (error || !data) {
+    console.error('運転手がイベントに紐づいていません:', error?.message ?? vehicleOfferId)
+    return false
+  }
+
+  return true
+}
+
 export async function createEvent(formData: FormData): Promise<void> {
   const title = formData.get('title') as string
   const caseType = formData.get('caseType') as string
@@ -289,6 +339,10 @@ export async function createEvent(formData: FormData): Promise<void> {
     console.error('イベント名が空です')
     return
   }
+  if (!isValidTextLength(title.trim(), MAX_EVENT_TITLE_LENGTH)) {
+    console.error('イベント名が長すぎます')
+    return
+  }
 
   if (!caseType || !['noriai', 'sougei'].includes(caseType)) {
     console.error('モードが不正です')
@@ -297,6 +351,10 @@ export async function createEvent(formData: FormData): Promise<void> {
 
   if (!destinationText || !destinationText.trim()) {
     console.error('目的地または基点が空です')
+    return
+  }
+  if (!isValidTextLength(destinationText.trim(), MAX_LOCATION_TEXT_LENGTH)) {
+    console.error('目的地または基点が長すぎます')
     return
   }
 
@@ -383,9 +441,17 @@ export async function updateEvent(formData: FormData): Promise<void> {
     console.error('イベント名が空です')
     return
   }
+  if (!isValidTextLength(title.trim(), MAX_EVENT_TITLE_LENGTH)) {
+    console.error('イベント名が長すぎます')
+    return
+  }
 
   if (!destinationText || !destinationText.trim()) {
     console.error('目的地または基点が空です')
+    return
+  }
+  if (!isValidTextLength(destinationText.trim(), MAX_LOCATION_TEXT_LENGTH)) {
+    console.error('目的地または基点が長すぎます')
     return
   }
 
@@ -474,6 +540,10 @@ export async function createEventMember(formData: FormData): Promise<void> {
     console.error('搭乗者名が空です')
     return
   }
+  if (!isValidTextLength(name.trim(), MAX_MEMBER_NAME_LENGTH)) {
+    console.error('搭乗者名が長すぎます')
+    return
+  }
 
   const { data: eventData, error: eventError } = await supabase
     .from('events')
@@ -491,6 +561,18 @@ export async function createEventMember(formData: FormData): Promise<void> {
 
   if (eventError) {
     console.error('イベント取得エラー:', eventError.message)
+    return
+  }
+  if (eventData.case_type === 'sougei' && (!destinationText || !destinationText.trim())) {
+    console.error('ソウゲイの到着地点が空です')
+    return
+  }
+  if (!isValidTextLength(startLocationText, MAX_LOCATION_TEXT_LENGTH)) {
+    console.error('出発地点が長すぎます')
+    return
+  }
+  if (!isValidTextLength(destinationText, MAX_LOCATION_TEXT_LENGTH)) {
+    console.error('到着地点が長すぎます')
     return
   }
 
@@ -539,6 +621,25 @@ export async function createEventMember(formData: FormData): Promise<void> {
     eventData.case_type === 'sougei' ? destinationText : null
   const nextDestinationPlaceId =
     eventData.case_type === 'sougei' ? destinationPlaceId : null
+
+  const { data: existingMember } = await supabase
+    .from('event_members')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('name', name.trim())
+    .eq('start_location_text', resolvedStartText)
+    .eq('destination_text', nextDestinationText)
+    .gte(
+      'created_at',
+      new Date(Date.now() - DUPLICATE_GUARD_WINDOW_SECONDS * 1000).toISOString()
+    )
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>()
+
+  if (existingMember?.id) {
+    await redirectWithNotice(eventId, 'member_registered', appendSearchParam(returnToPath, 'memberId', existingMember.id))
+  }
 
   const { data: insertedMember, error } = await supabase
     .from('event_members')
@@ -604,6 +705,21 @@ export async function updateEventMember(formData: FormData): Promise<void> {
 
   if (!name || !name.trim()) {
     console.error('搭乗者名が空です')
+    return
+  }
+  if (!isValidTextLength(name.trim(), MAX_MEMBER_NAME_LENGTH)) {
+    console.error('搭乗者名が長すぎます')
+    return
+  }
+  if (!isValidTextLength(startLocationText, MAX_LOCATION_TEXT_LENGTH)) {
+    console.error('出発地点が長すぎます')
+    return
+  }
+  if (!isValidTextLength(destinationText, MAX_LOCATION_TEXT_LENGTH)) {
+    console.error('到着地点が長すぎます')
+    return
+  }
+  if (!(await ensureMemberBelongsToEvent(memberId, eventId))) {
     return
   }
 
@@ -749,6 +865,9 @@ export async function deleteEventMember(formData: FormData): Promise<void> {
     console.error('memberId が空です')
     return
   }
+  if (!(await ensureMemberBelongsToEvent(memberId, eventId))) {
+    return
+  }
 
   const { error } = await supabase
     .from('event_members')
@@ -784,11 +903,19 @@ export async function createVehicleOffer(formData: FormData): Promise<void> {
     console.error('運転手名が空です')
     return
   }
+  if (!isValidTextLength(driverName.trim(), MAX_DRIVER_NAME_LENGTH)) {
+    console.error('運転手名が長すぎます')
+    return
+  }
 
   const capacity = Number(capacityValue)
 
-  if (!Number.isInteger(capacity) || capacity <= 0) {
+  if (!Number.isInteger(capacity) || capacity <= 0 || capacity > MAX_VEHICLE_CAPACITY) {
     console.error('定員が不正です')
+    return
+  }
+  if (!isValidTextLength(startLocationText, MAX_LOCATION_TEXT_LENGTH)) {
+    console.error('出発地点が長すぎます')
     return
   }
 
@@ -864,6 +991,31 @@ export async function createVehicleOffer(formData: FormData): Promise<void> {
     return
   }
 
+  const { data: existingVehicle } = await supabase
+    .from('vehicle_offers')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('driver_name', driverName.trim())
+    .eq('start_location_text', resolvedStartText)
+    .eq('capacity', capacity)
+    .gte(
+      'created_at',
+      new Date(Date.now() - DUPLICATE_GUARD_WINDOW_SECONDS * 1000).toISOString()
+    )
+    .neq('id', insertedVehicleOffer.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>()
+
+  if (existingVehicle?.id) {
+    await supabase.from('vehicle_offers').delete().eq('id', insertedVehicleOffer.id)
+    await redirectWithNotice(
+      eventId,
+      'driver_registered',
+      appendSearchParam(returnToPath, 'vehicleOfferId', existingVehicle.id)
+    )
+  }
+
   const marked = await markReplanRequired(eventId)
 
   if (!marked) {
@@ -904,10 +1056,21 @@ export async function updateVehicleOffer(formData: FormData): Promise<void> {
     console.error('運転手名が空です')
     return
   }
+  if (!isValidTextLength(driverName.trim(), MAX_DRIVER_NAME_LENGTH)) {
+    console.error('運転手名が長すぎます')
+    return
+  }
+  if (!isValidTextLength(startLocationText, MAX_LOCATION_TEXT_LENGTH)) {
+    console.error('出発地点が長すぎます')
+    return
+  }
+  if (!(await ensureVehicleBelongsToEvent(vehicleOfferId, eventId))) {
+    return
+  }
 
   const capacity = Number(capacityValue)
 
-  if (!Number.isInteger(capacity) || capacity <= 0) {
+  if (!Number.isInteger(capacity) || capacity <= 0 || capacity > MAX_VEHICLE_CAPACITY) {
     console.error('定員が不正です')
     return
   }
@@ -1021,6 +1184,9 @@ export async function deleteVehicleOffer(formData: FormData): Promise<void> {
 
   if (!vehicleOfferId || !vehicleOfferId.trim()) {
     console.error('vehicleOfferId が空です')
+    return
+  }
+  if (!(await ensureVehicleBelongsToEvent(vehicleOfferId, eventId))) {
     return
   }
 

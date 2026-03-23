@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PlaceSearchSelectInput from "../../../components/PlaceSearchSelectInput";
+import PendingSubmitButton from "../../../components/PendingSubmitButton";
 import { supabase } from "../../../lib/supabase";
 import { buildGoogleMapsDirectionsUrl } from "../../../lib/maps";
 import { buildNoriaiTimeline } from "../../../lib/planTimeline";
@@ -357,12 +358,11 @@ export default async function ParticipantEventPage({
                 />
               ) : null}
 
-              <button
-                type="submit"
-                className={registerButtonClass}
-              >
-                搭乗者を登録する
-              </button>
+              <PendingSubmitButton
+                idleLabel="搭乗者を登録する"
+                pendingLabel="搭乗者を登録中..."
+                className={`${registerButtonClass} disabled:cursor-not-allowed disabled:bg-teal-300`}
+              />
             </form>
           </section>
 
@@ -415,24 +415,24 @@ export default async function ParticipantEventPage({
                   htmlFor="participant-capacity"
                   className="mb-2 block text-sm font-medium text-slate-700"
                 >
-                  定員
+                  定員（運転手を除く）
                 </label>
                 <input
                   id="participant-capacity"
                   name="capacity"
                   type="number"
                   min="1"
+                  max="12"
                   required
                   className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100"
                 />
               </div>
 
-              <button
-                type="submit"
-                className={registerButtonClass}
-              >
-                運転手を登録する
-              </button>
+              <PendingSubmitButton
+                idleLabel="運転手を登録する"
+                pendingLabel="運転手を登録中..."
+                className={`${registerButtonClass} disabled:cursor-not-allowed disabled:bg-teal-300`}
+              />
             </form>
           </section>
         </section>
@@ -926,12 +926,13 @@ export default async function ParticipantEventPage({
                             />
                             <div>
                               <label className="mb-1 block text-xs font-medium text-slate-700">
-                                定員
+                                定員（運転手を除く）
                               </label>
                               <input
                                 name="capacity"
                                 type="number"
                                 min="1"
+                                max="12"
                                 required
                                 defaultValue={vehicle.capacity}
                                 className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100"
