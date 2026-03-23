@@ -47,6 +47,10 @@ function parseOptionalDateTime(value: FormDataEntryValue | null): string | null 
   return trimmed
 }
 
+function parseCheckbox(value: FormDataEntryValue | null): boolean {
+  return value === 'on'
+}
+
 function normalizeOptionalText(value: string | null | undefined): string | null {
   const trimmed = (value ?? '').trim()
   return trimmed ? trimmed : null
@@ -530,6 +534,7 @@ export async function createEventMember(formData: FormData): Promise<void> {
   const destinationPlaceId = parseOptionalString(
     formData.get('destinationTextPlaceId')
   )
+  const canUseRentalCar = parseCheckbox(formData.get('canUseRentalCar'))
 
   if (!eventId || !eventId.trim()) {
     console.error('eventId が空です')
@@ -655,6 +660,7 @@ export async function createEventMember(formData: FormData): Promise<void> {
         destination_lat: resolvedDestination.lat,
         destination_lng: resolvedDestination.lng,
         destination_place_id: nextDestinationPlaceId,
+        can_use_rental_car: canUseRentalCar,
       },
     ])
     .select('id')
@@ -692,6 +698,7 @@ export async function updateEventMember(formData: FormData): Promise<void> {
   const destinationPlaceId = parseOptionalString(
     formData.get('destinationTextPlaceId')
   )
+  const canUseRentalCar = parseCheckbox(formData.get('canUseRentalCar'))
 
   if (!eventId || !eventId.trim()) {
     console.error('eventId が空です')
@@ -840,6 +847,7 @@ export async function updateEventMember(formData: FormData): Promise<void> {
       destination_lat: resolvedDestination.lat,
       destination_lng: resolvedDestination.lng,
       destination_place_id: nextDestinationPlaceId,
+      can_use_rental_car: canUseRentalCar,
     })
     .eq('id', memberId)
 
