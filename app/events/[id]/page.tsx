@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import OpenParticipantPageLink from '../../../components/OpenParticipantPageLink'
 import PlaceSearchSelectInput from '../../../components/PlaceSearchSelectInput'
 import PendingSubmitButton from '../../../components/PendingSubmitButton'
 import { supabase } from '../../../lib/supabase'
@@ -223,9 +224,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
             <Link href="/" className="inline-flex items-center text-sm font-medium text-slate-500 transition hover:text-slate-900">
               ← ホームに戻る
             </Link>
-            <Link href={participantPath} className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-              参加者ページを開く
-            </Link>
+            <OpenParticipantPageLink href={participantPath} />
           </div>
 
           <form action={deleteEvent}>
