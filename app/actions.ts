@@ -5,7 +5,10 @@ import { redirect } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { getOrCreateEventOwnerId } from '../lib/eventOwner'
 import { geocodeAddress } from '../lib/geocode'
-import { isUndefinedColumnError } from '../lib/supabaseErrors'
+import {
+  isUndefinedColumnError,
+  mapCreateEventErrorToNotice,
+} from '../lib/supabaseErrors'
 import {
   buildSimplePlan,
   type EventMemberRecord,
@@ -420,10 +423,13 @@ export async function createEvent(formData: FormData): Promise<void> {
   }
 
   if (error || !data?.id) {
-    console.error('イベント作成エラー:', error?.message ?? 'イベントID取得失敗')
-    redirectCreateEventWithNotice(
-      'イベント作成に失敗しました。時間をおいて再度お試しください'
-    )
+    console.error('イベント作成エラー:', {
+      code: error?.code ?? null,
+      message: error?.message ?? null,
+      details: (error as { details?: string | null } | null)?.details ?? null,
+      hint: (error as { hint?: string | null } | null)?.hint ?? null,
+    })
+    redirectCreateEventWithNotice(mapCreateEventErrorToNotice(error))
   }
 
   revalidatePath('/')
