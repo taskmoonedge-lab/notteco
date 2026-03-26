@@ -336,6 +336,12 @@ async function ensureVehicleBelongsToEvent(
 }
 
 export async function createEvent(formData: FormData): Promise<void> {
+  const traceId = `ce-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  console.info('[createEvent_entered:v1]', {
+    traceId,
+    timestamp: new Date().toISOString(),
+  })
+
   const title = formData.get('title') as string
   const caseType = formData.get('caseType') as string
   const destinationText = formData.get('destinationText') as string
@@ -424,6 +430,7 @@ export async function createEvent(formData: FormData): Promise<void> {
 
   if (error || !data?.id) {
     console.error('イベント作成エラー:', {
+      traceId,
       code: error?.code ?? null,
       message: error?.message ?? null,
       details: (error as { details?: string | null } | null)?.details ?? null,
