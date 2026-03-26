@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+import CreateEventSubmitDiagnostics from '../components/CreateEventSubmitDiagnostics'
 import ModeSwitchFields from '../components/ModeSwitchFields'
 import { supabase } from '../lib/supabase'
 import { getEventOwnerId } from '../lib/eventOwner'
@@ -303,12 +304,7 @@ export default async function Home({
               に同意して、
             </p>
 
-            <button
-              type="submit"
-              className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-500 px-5 py-3.5 text-base font-bold text-white transition hover:bg-emerald-600"
-            >
-              今すぐイベントを作成
-            </button>
+            <CreateEventSubmitDiagnostics />
           </form>
         </section>
 
