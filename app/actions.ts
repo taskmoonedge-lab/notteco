@@ -231,6 +231,10 @@ function appendNoticeParam(path: string, notice: string): string {
   return appendSearchParam(path, 'notice', notice)
 }
 
+function redirectCreateEventWithNotice(notice: string): never {
+  redirect(appendNoticeParam('/#quick-create', notice))
+}
+
 function getReturnToPath(formData: FormData, eventId: string): string {
   const returnTo = parseOptionalString(formData.get('returnTo'))
 
@@ -341,30 +345,30 @@ export async function createEvent(formData: FormData): Promise<void> {
 
   if (!title || !title.trim()) {
     console.error('イベント名が空です')
-    return
+    redirectCreateEventWithNotice('イベント名を入力してください')
   }
   if (!isValidTextLength(title.trim(), MAX_EVENT_TITLE_LENGTH)) {
     console.error('イベント名が長すぎます')
-    return
+    redirectCreateEventWithNotice('イベント名が長すぎます')
   }
 
   if (!caseType || !['noriai', 'sougei'].includes(caseType)) {
     console.error('モードが不正です')
-    return
+    redirectCreateEventWithNotice('モード選択が不正です')
   }
 
   if (!destinationText || !destinationText.trim()) {
     console.error('目的地または基点が空です')
-    return
+    redirectCreateEventWithNotice('目的地または出発地点を入力してください')
   }
   if (!isValidTextLength(destinationText.trim(), MAX_LOCATION_TEXT_LENGTH)) {
     console.error('目的地または基点が長すぎます')
-    return
+    redirectCreateEventWithNotice('目的地または出発地点が長すぎます')
   }
 
   if (!eventAt) {
     console.error('イベント日時が空または不正です')
-    return
+    redirectCreateEventWithNotice('イベント日時を正しく入力してください')
   }
 
   const normalizedDestinationText = normalizeOptionalText(destinationText)
@@ -417,7 +421,9 @@ export async function createEvent(formData: FormData): Promise<void> {
 
   if (error || !data?.id) {
     console.error('イベント作成エラー:', error?.message ?? 'イベントID取得失敗')
-    return
+    redirectCreateEventWithNotice(
+      'イベント作成に失敗しました。時間をおいて再度お試しください'
+    )
   }
 
   revalidatePath('/')

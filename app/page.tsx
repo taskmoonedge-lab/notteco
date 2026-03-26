@@ -118,7 +118,11 @@ function formatEventAt(value: string | null): string {
   return new Date(value).toLocaleString('ja-JP')
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<{ notice?: string | string[] }>
+}) {
   const ownerId = await getEventOwnerId()
 
   const buildEventsQuery = () =>
@@ -146,6 +150,9 @@ export default async function Home() {
   }
 
   const safeEvents = events ?? []
+  const resolvedSearchParams = await searchParams
+  const noticeParam = resolvedSearchParams?.notice
+  const notice = Array.isArray(noticeParam) ? noticeParam[0] : noticeParam
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white text-slate-800">
@@ -266,6 +273,12 @@ export default async function Home() {
             </h2>
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-700">最短1分</span>
           </div>
+
+          {notice ? (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              {notice}
+            </div>
+          ) : null}
 
           <form id="create-event-form" action={createEvent} className="mt-6 space-y-5">
             <div>
