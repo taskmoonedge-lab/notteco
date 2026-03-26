@@ -288,7 +288,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
               <h2 className="text-2xl font-bold tracking-tight text-slate-900">配車結果</h2>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <form action={executePlan}><input type="hidden" name="eventId" value={event.id} /><input type="hidden" name="returnTo" value={adminPath} /><button type="submit" className="inline-flex items-center justify-center rounded-2xl bg-teal-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-600">配車する</button></form>
+              <form action={executePlan}><input type="hidden" name="eventId" value={event.id} /><input type="hidden" name="returnTo" value={adminPath} /><PendingSubmitButton idleLabel="配車する" pendingLabel="配車中..." className="inline-flex items-center justify-center gap-2 rounded-2xl bg-teal-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-600 disabled:cursor-not-allowed disabled:opacity-70" /></form>
               <form action={deleteRoutePlans}><input type="hidden" name="eventId" value={event.id} /><input type="hidden" name="returnTo" value={adminPath} /><button type="submit" className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">配車結果を削除</button></form>
             </div>
           </div>
