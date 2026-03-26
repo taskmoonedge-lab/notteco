@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useFormStatus } from 'react-dom'
 import Link from 'next/link'
+import PendingSubmitButton from './PendingSubmitButton'
 import PlaceSearchSelectInput from './PlaceSearchSelectInput'
 
 type CaseType = 'noriai' | 'sougei'
@@ -35,19 +35,6 @@ const modeOptions: Array<{
   },
 ]
 
-function SubmitButton() {
-  const { pending } = useFormStatus()
-
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-500 px-5 py-3.5 text-base font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {pending ? '作成中...' : 'イベントを作成する'}
-    </button>
-  )
-}
 
 export default function EventCreateForm({ notice, action }: EventCreateFormProps) {
   const [caseType, setCaseType] = useState<CaseType>('noriai')
@@ -147,7 +134,11 @@ export default function EventCreateForm({ notice, action }: EventCreateFormProps
         に同意して作成します。
       </p>
 
-      <SubmitButton />
+      <PendingSubmitButton
+        idleLabel="イベントを作成する"
+        pendingLabel="作成中..."
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3.5 text-base font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+      />
     </form>
   )
 }
