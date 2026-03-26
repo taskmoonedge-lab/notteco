@@ -33,6 +33,7 @@ type PlaceSearchSelectInputProps = {
   defaultLng?: number | null
   helperText?: string
   required?: boolean
+  requireSelection?: boolean
 }
 
 export default function PlaceSearchSelectInput({
@@ -46,6 +47,7 @@ export default function PlaceSearchSelectInput({
   defaultLng,
   helperText,
   required = false,
+  requireSelection = true,
 }: PlaceSearchSelectInputProps) {
   const [query, setQuery] = useState(defaultText ?? '')
   const [selectedLat, setSelectedLat] = useState<number | ''>(defaultLat ?? '')
@@ -193,6 +195,7 @@ export default function PlaceSearchSelectInput({
   }
 
   const isSelected = selectedLat !== '' && selectedLng !== '' && !!selectedLabel
+  const mustSelectFromSuggestion = required && requireSelection
 
   return (
     <div className="relative">
@@ -242,7 +245,7 @@ export default function PlaceSearchSelectInput({
       />
       <input type="hidden" name={`${textName}PlaceId`} value={selectedPlaceId} />
 
-      {required ? (
+      {mustSelectFromSuggestion ? (
         <input
           value={selectedLabel}
           onChange={() => {}}
@@ -272,9 +275,14 @@ export default function PlaceSearchSelectInput({
         </div>
       ) : null}
 
-      {required && !isSelected ? (
+      {mustSelectFromSuggestion && !isSelected ? (
         <p className="mt-2 text-xs font-medium text-amber-700">
           送信前に検索して候補を1件選択してください
+        </p>
+      ) : null}
+      {required && !mustSelectFromSuggestion && !isSelected ? (
+        <p className="mt-2 text-xs font-medium text-slate-600">
+          候補未選択でも送信できます（テキスト住所で登録）
         </p>
       ) : null}
 

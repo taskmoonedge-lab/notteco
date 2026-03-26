@@ -57,8 +57,9 @@ export default function ModeSwitchFields() {
         latName="destinationLat"
         lngName="destinationLng"
         placeholder="駅名、施設名、住所など"
-        helperText="候補から1件選択してください"
+        helperText="候補選択推奨（未選択でも住所テキストで作成できます）"
         required
+        requireSelection={false}
       />
 
       <div>
