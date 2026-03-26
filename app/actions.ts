@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { getOrCreateEventOwnerId } from '../lib/eventOwner'
 import { geocodeAddress } from '../lib/geocode'
 import {
   buildSimplePlan,
@@ -11,6 +12,7 @@ import {
   type VehicleOfferRecord,
 } from '../lib/planner'
 import { optimizeAssignmentRoute } from '../lib/routesProvider'
+import { isUndefinedColumnError } from '../lib/supabaseErrors'
 
 const MAX_EVENT_TITLE_LENGTH = 120
 const MAX_MEMBER_NAME_LENGTH = 80
@@ -376,6 +378,7 @@ export async function createEvent(formData: FormData): Promise<void> {
   }
 
   const normalizedDestinationText = normalizeOptionalText(destinationText)
+  const ownerId = await getOrCreateEventOwnerId()
   const destinationCoords = await resolveCoordinatesFromInput(
     normalizedDestinationText,
     destinationLat,
@@ -391,13 +394,25 @@ export async function createEvent(formData: FormData): Promise<void> {
     destination_place_id: destinationPlaceId,
     event_at: eventAt,
     plan_is_latest: false,
+    owner_id: ownerId,
   }
 
-  const { data, error } = await supabase
+  const ownerScopedInsert = await supabase
     .from('events')
     .insert([baseEventPayload])
     .select('id')
     .single<{ id: string }>()
+
+  const legacyEventPayload = { ...baseEventPayload }
+  delete (legacyEventPayload as { owner_id?: string }).owner_id
+
+  const { data, error } = isUndefinedColumnError(ownerScopedInsert.error)
+    ? await supabase
+        .from('events')
+        .insert([legacyEventPayload])
+        .select('id')
+        .single<{ id: string }>()
+    : ownerScopedInsert
 
   if (error || !data?.id) {
     console.error('イベント作成エラー:', {
