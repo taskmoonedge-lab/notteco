@@ -22,7 +22,15 @@ export default function PendingSubmitButton({
       aria-busy={pending}
       className={className}
     >
-      {pending ? pendingLabel : idleLabel}
+      <span className="inline-flex items-center justify-center gap-2">
+        {pending ? (
+          <span
+            className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+            aria-hidden="true"
+          />
+        ) : null}
+        <span>{pending ? pendingLabel : idleLabel}</span>
+      </span>
     </button>
   )
 }

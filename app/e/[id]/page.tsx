@@ -803,12 +803,11 @@ export default async function ParticipantEventPage({
                               />
                               レンタカー参加が可能
                             </label>
-                            <button
-                              type="submit"
-                              className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600"
-                            >
-                              搭乗者を更新
-                            </button>
+                            <PendingSubmitButton
+                              idleLabel="搭乗者を更新"
+                              pendingLabel="搭乗者を更新中..."
+                              className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600 disabled:cursor-not-allowed disabled:bg-teal-300"
+                            />
                           </form>
                           <form action={deleteEventMember}>
                             <input type="hidden" name="eventId" value={event.id} />
@@ -822,12 +821,11 @@ export default async function ParticipantEventPage({
                               name="memberId"
                               value={member.id}
                             />
-                            <button
-                              type="submit"
-                              className="inline-flex w-full justify-center rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                            >
-                              搭乗者を削除
-                            </button>
+                            <PendingSubmitButton
+                              idleLabel="搭乗者を削除"
+                              pendingLabel="削除中..."
+                              className="inline-flex w-full justify-center rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
+                            />
                           </form>
                         </div>
                       </details>
@@ -958,12 +956,11 @@ export default async function ParticipantEventPage({
                                 className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100"
                               />
                             </div>
-                            <button
-                              type="submit"
-                              className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600"
-                            >
-                              運転手を更新
-                            </button>
+                            <PendingSubmitButton
+                              idleLabel="運転手を更新"
+                              pendingLabel="運転手を更新中..."
+                              className="inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-600 disabled:cursor-not-allowed disabled:bg-teal-300"
+                            />
                           </form>
                           <form action={deleteVehicleOffer}>
                             <input type="hidden" name="eventId" value={event.id} />
@@ -977,12 +974,11 @@ export default async function ParticipantEventPage({
                               name="vehicleOfferId"
                               value={vehicle.id}
                             />
-                            <button
-                              type="submit"
-                              className="inline-flex w-full justify-center rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                            >
-                              運転手を削除
-                            </button>
+                            <PendingSubmitButton
+                              idleLabel="運転手を削除"
+                              pendingLabel="削除中..."
+                              className="inline-flex w-full justify-center rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
+                            />
                           </form>
                         </div>
                       </details>
