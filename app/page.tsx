@@ -267,7 +267,7 @@ export default async function Home() {
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-700">最短1分</span>
           </div>
 
-          <form id="create-event-form" action={createEvent} target="_blank" className="mt-6 space-y-5">
+          <form id="create-event-form" action={createEvent} className="mt-6 space-y-5">
             <div>
               <label htmlFor="title" className="mb-2 block text-base font-bold text-slate-800">
                 イベント名
