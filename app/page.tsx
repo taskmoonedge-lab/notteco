@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import ModeSwitchFields from '../components/ModeSwitchFields'
+import EventCreateForm from '../components/EventCreateForm'
 import { supabase } from '../lib/supabase'
 import { getEventOwnerId } from '../lib/eventOwner'
 import { isUndefinedColumnError } from '../lib/supabaseErrors'
@@ -273,43 +273,7 @@ export default async function Home({
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-700">最短1分</span>
           </div>
 
-          {notice ? (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-              {notice}
-            </div>
-          ) : null}
-
-          <form id="create-event-form" action={createEvent} className="mt-6 space-y-5">
-            <div>
-              <label htmlFor="title" className="mb-2 block text-base font-bold text-slate-800">
-                イベント名
-              </label>
-              <input
-                id="title"
-                name="title"
-                type="text"
-                required
-                placeholder="例: ゴルフ送迎 / BBQ / ライブ遠征"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base font-medium outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
-              />
-            </div>
-
-            <ModeSwitchFields />
-
-            <p className="text-center text-sm font-medium text-slate-600">
-              <Link href="/terms" className="font-bold text-orange-500 underline underline-offset-2 hover:text-orange-600">
-                利用規約
-              </Link>
-              に同意して、
-            </p>
-
-            <button
-              type="submit"
-              className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-500 px-5 py-3.5 text-base font-bold text-white transition hover:bg-emerald-600"
-            >
-              今すぐイベントを作成
-            </button>
-          </form>
+          <EventCreateForm notice={notice} action={createEvent} />
         </section>
 
         <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" aria-labelledby="event-list-title">
