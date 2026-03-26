@@ -3,12 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import { getOrCreateEventOwnerId } from '../lib/eventOwner'
 import { geocodeAddress } from '../lib/geocode'
-import {
-  isUndefinedColumnError,
-  mapCreateEventErrorToNotice,
-} from '../lib/supabaseErrors'
 import {
   buildSimplePlan,
   type EventMemberRecord,
@@ -381,8 +376,6 @@ export async function createEvent(formData: FormData): Promise<void> {
   }
 
   const normalizedDestinationText = normalizeOptionalText(destinationText)
-  const ownerId = await getOrCreateEventOwnerId()
-
   const destinationCoords = await resolveCoordinatesFromInput(
     normalizedDestinationText,
     destinationLat,
@@ -400,33 +393,11 @@ export async function createEvent(formData: FormData): Promise<void> {
     plan_is_latest: false,
   }
 
-  let data: { id: string } | null = null
-  let error: { message?: string | null; code?: string | null } | null = null
-
-  const ownerScopedInsert = await supabase
+  const { data, error } = await supabase
     .from('events')
-    .insert([
-      {
-        ...baseEventPayload,
-        owner_id: ownerId,
-      },
-    ])
+    .insert([baseEventPayload])
     .select('id')
     .single<{ id: string }>()
-
-  if (isUndefinedColumnError(ownerScopedInsert.error)) {
-    const fallbackInsert = await supabase
-      .from('events')
-      .insert([baseEventPayload])
-      .select('id')
-      .single<{ id: string }>()
-
-    data = fallbackInsert.data
-    error = fallbackInsert.error
-  } else {
-    data = ownerScopedInsert.data
-    error = ownerScopedInsert.error
-  }
 
   if (error || !data?.id) {
     console.error('イベント作成エラー:', {
@@ -436,7 +407,9 @@ export async function createEvent(formData: FormData): Promise<void> {
       details: (error as { details?: string | null } | null)?.details ?? null,
       hint: (error as { hint?: string | null } | null)?.hint ?? null,
     })
-    redirectCreateEventWithNotice(mapCreateEventErrorToNotice(error))
+    redirectCreateEventWithNotice(
+      'イベント作成に失敗しました。時間をおいて再度お試しください'
+    )
   }
 
   revalidatePath('/')
