@@ -231,6 +231,64 @@ function appendNoticeParam(path: string, notice: string): string {
   return appendSearchParam(path, 'notice', notice)
 }
 
+function extractMissingColumnName(
+  error: { code?: string | null; message?: string | null } | null | undefined
+): string | null {
+  if (!isUndefinedColumnError(error)) return null
+
+  const message = error?.message ?? ''
+  const match = message.match(/column\s+"([^"]+)"/i)
+  return match?.[1] ?? null
+}
+
+async function insertEventWithLegacyCompatibility(
+  payload: Record<string, unknown>
+): Promise<{
+  data: { id: string } | null
+  error: { code?: string | null; message?: string | null } | null
+}> {
+  const removableColumns = new Set([
+    'owner_id',
+    'plan_is_latest',
+    'destination_place_id',
+    'destination_lat',
+    'destination_lng',
+  ])
+
+  const requestPayload: Record<string, unknown> = { ...payload }
+  let lastError: { code?: string | null; message?: string | null } | null = null
+
+  for (let attempt = 0; attempt < removableColumns.size + 1; attempt += 1) {
+    const { data, error } = await supabase
+      .from('events')
+      .insert([requestPayload])
+      .select('id')
+      .single<{ id: string }>()
+
+    if (!error && data?.id) {
+      return {
+        data,
+        error: null,
+      }
+    }
+
+    lastError = error
+    const missingColumn = extractMissingColumnName(error)
+
+    if (!missingColumn || !removableColumns.has(missingColumn)) {
+      break
+    }
+
+    delete requestPayload[missingColumn]
+    removableColumns.delete(missingColumn)
+  }
+
+  return {
+    data: null,
+    error: lastError,
+  }
+}
+
 function redirectCreateEventWithNotice(notice: string): never {
   redirect(appendNoticeParam('/#quick-create', notice))
 }
@@ -397,22 +455,7 @@ export async function createEvent(formData: FormData): Promise<void> {
     owner_id: ownerId,
   }
 
-  const ownerScopedInsert = await supabase
-    .from('events')
-    .insert([baseEventPayload])
-    .select('id')
-    .single<{ id: string }>()
-
-  const legacyEventPayload = { ...baseEventPayload }
-  delete (legacyEventPayload as { owner_id?: string }).owner_id
-
-  const { data, error } = isUndefinedColumnError(ownerScopedInsert.error)
-    ? await supabase
-        .from('events')
-        .insert([legacyEventPayload])
-        .select('id')
-        .single<{ id: string }>()
-    : ownerScopedInsert
+  const { data, error } = await insertEventWithLegacyCompatibility(baseEventPayload)
 
   if (error || !data?.id) {
     console.error('イベント作成エラー:', {
