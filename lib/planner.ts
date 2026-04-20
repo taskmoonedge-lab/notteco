@@ -123,13 +123,24 @@ function tryRebalanceAssignments(
     const distances = nextAssignments.map((assignment) =>
       getDistanceWithCache(distanceCache, assignment.vehicle, assignment.members)
     )
-
     const totalDistance = distances.reduce((sum, distance) => sum + distance, 0)
+
+    const vectorPenalty = nextAssignments.reduce((sum, assignment) => {
+      const affinityCost = assignment.members.reduce(
+        (memberSum, member) =>
+          memberSum +
+          calculateDriverMemberAffinityCost(event, assignment.vehicle, member),
+        0
+      )
+
+      return sum + affinityCost
+    }, 0)
+
     const maxDistance = distances.length > 0 ? Math.max(...distances) : 0
     const minDistance = distances.length > 0 ? Math.min(...distances) : 0
-    const imbalancePenalty = Math.max(maxDistance - minDistance, 0) * 0.08
+    const imbalancePenalty = Math.max(maxDistance - minDistance, 0) * 0.015
 
-    return totalDistance + imbalancePenalty
+    return totalDistance + vectorPenalty * 0.45 + imbalancePenalty
   }
 
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
@@ -347,7 +358,7 @@ export function buildSimplePlan(
         member
       )
 
-      const comparableCost = insertionCost + affinityCost * 0.35
+      const comparableCost = insertionCost + affinityCost * 0.95
 
       if (comparableCost < bestCost) {
         bestCost = comparableCost
