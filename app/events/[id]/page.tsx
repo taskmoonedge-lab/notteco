@@ -41,6 +41,7 @@ type RoutePlanRecord = {
   route_stops: string[] | null
   total_distance_meters: number | null
   total_duration_seconds: number | null
+  pickup_offsets_seconds: number[] | null
   solver_status: string | null
   plan_version: number | null
   ordered_member_ids: string[] | null
@@ -363,8 +364,9 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                     eventAt: event.event_at,
                     vehicle: planVehicle,
                     orderedMembers,
-                    totalDurationSeconds: plan.total_duration_seconds,
-                  })
+                  totalDurationSeconds: plan.total_duration_seconds,
+                  pickupOffsetsSeconds: plan.pickup_offsets_seconds,
+                })
 
                   return (
                     <details key={plan.id + idx} className="rounded-2xl border border-slate-200 bg-white shadow-sm">

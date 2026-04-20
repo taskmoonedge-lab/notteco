@@ -36,6 +36,7 @@ type RoutePlanRecord = {
   route_stops: string[] | null;
   total_distance_meters: number | null;
   total_duration_seconds: number | null;
+  pickup_offsets_seconds: number[] | null;
   ordered_member_ids: string[] | null;
   ordered_member_names: string[] | null;
   created_at: string;
@@ -137,7 +138,7 @@ export default async function ParticipantEventPage({
   const { data: routePlans, error: routePlansError } = await supabase
     .from("route_plans")
     .select(
-      "id, vehicle_offer_id, driver_name, member_names, route_stops, total_distance_meters, total_duration_seconds, ordered_member_ids, ordered_member_names, created_at",
+      "id, vehicle_offer_id, driver_name, member_names, route_stops, total_distance_meters, total_duration_seconds, pickup_offsets_seconds, ordered_member_ids, ordered_member_names, created_at",
     )
     .eq("event_id", id)
     .order("created_at", { ascending: false })
@@ -500,6 +501,7 @@ export default async function ParticipantEventPage({
                   vehicle: planVehicle,
                   orderedMembers,
                   totalDurationSeconds: plan.total_duration_seconds,
+                  pickupOffsetsSeconds: plan.pickup_offsets_seconds,
                 });
 
                 return (

@@ -51,6 +51,7 @@ export type Assignment = {
   routeText: string
   totalDistanceMeters: number | null
   totalDurationSeconds: number | null
+  pickupOffsetsSeconds: number[] | null
   orderedMemberIds: string[]
   orderedMemberNames: string[]
   encodedPolyline: string | null
@@ -358,6 +359,7 @@ export function buildSimplePlan(
     routeText: '',
     totalDistanceMeters: null,
     totalDurationSeconds: null,
+    pickupOffsetsSeconds: null,
     orderedMemberIds: [],
     orderedMemberNames: [],
     encodedPolyline: null,
@@ -480,6 +482,7 @@ export function buildSimplePlan(
     assignment.routeText = assignment.routeStops.join(' → ')
     assignment.totalDistanceMeters = metrics.totalDistanceMeters
     assignment.totalDurationSeconds = metrics.totalDurationSeconds
+    assignment.pickupOffsetsSeconds = null
     assignment.orderedMemberIds = orderedMembers.map((member) => member.id)
     assignment.orderedMemberNames = orderedMembers.map((member) => member.name)
     assignment.encodedPolyline = null
