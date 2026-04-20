@@ -471,7 +471,7 @@ export async function createEvent(formData: FormData): Promise<void> {
   }
 
   revalidatePath('/')
-  redirect(`/admin/events/${data.id}`)
+  redirect(`/events/${data.id}`)
 }
 
 export async function updateEvent(formData: FormData): Promise<void> {
