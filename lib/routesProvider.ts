@@ -25,6 +25,9 @@ type GoogleRoutesResponse = {
   routes?: Array<{
     distanceMeters?: number
     duration?: string
+    legs?: Array<{
+      duration?: string
+    }>
     optimizedIntermediateWaypointIndex?: number[]
     polyline?: {
       encodedPolyline?: string
@@ -144,6 +147,7 @@ function buildInternalFallbackResult(
     routeText: routeStops.join(' → '),
     totalDistanceMeters: metrics.totalDistanceMeters,
     totalDurationSeconds: metrics.totalDurationSeconds,
+    pickupOffsetsSeconds: null,
     orderedMemberIds: orderedMembers.map(
       (member: EventMemberRecord) => member.id
     ),
@@ -209,6 +213,7 @@ async function computeGoogleOptimizedOrder(
   orderedMembers: EventMemberRecord[]
   totalDistanceMeters: number | null
   totalDurationSeconds: number | null
+  pickupOffsetsSeconds: number[] | null
   encodedPolyline: string | null
   provider: string
   optimizationMode: string
@@ -223,6 +228,7 @@ async function computeGoogleOptimizedOrder(
       routeText: '',
       totalDistanceMeters: null,
       totalDurationSeconds: null,
+      pickupOffsetsSeconds: null,
       orderedMemberIds: [],
       orderedMemberNames: [],
       encodedPolyline: null,
@@ -234,6 +240,7 @@ async function computeGoogleOptimizedOrder(
       orderedMembers: fallback.members,
       totalDistanceMeters: fallback.totalDistanceMeters,
       totalDurationSeconds: fallback.totalDurationSeconds,
+      pickupOffsetsSeconds: fallback.pickupOffsetsSeconds,
       encodedPolyline: fallback.encodedPolyline,
       provider: fallback.provider,
       optimizationMode: fallback.optimizationMode,
@@ -250,6 +257,7 @@ async function computeGoogleOptimizedOrder(
       routeText: '',
       totalDistanceMeters: null,
       totalDurationSeconds: null,
+      pickupOffsetsSeconds: null,
       orderedMemberIds: [],
       orderedMemberNames: [],
       encodedPolyline: null,
@@ -261,6 +269,7 @@ async function computeGoogleOptimizedOrder(
       orderedMembers: fallback.members,
       totalDistanceMeters: fallback.totalDistanceMeters,
       totalDurationSeconds: fallback.totalDurationSeconds,
+      pickupOffsetsSeconds: fallback.pickupOffsetsSeconds,
       encodedPolyline: fallback.encodedPolyline,
       provider: fallback.provider,
       optimizationMode: fallback.optimizationMode,
@@ -290,7 +299,7 @@ async function computeGoogleOptimizedOrder(
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
             'X-Goog-FieldMask':
-              'routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.optimizedIntermediateWaypointIndex',
+              'routes.distanceMeters,routes.duration,routes.legs.duration,routes.polyline.encodedPolyline,routes.optimizedIntermediateWaypointIndex',
           },
           body: JSON.stringify({
             origin: pointToWaypoint(origin.lat, origin.lng),
@@ -325,11 +334,24 @@ async function computeGoogleOptimizedOrder(
         validMembers,
         route.optimizedIntermediateWaypointIndex
       )
+      const pickupOffsetsSeconds = route.legs
+        ?.slice(0, orderedMembers.length)
+        .map((leg) => parseDurationSeconds(leg.duration))
+        .reduce<number[]>((acc, seconds) => {
+          const segmentSeconds = seconds ?? 0
+          const previous = acc.length > 0 ? acc[acc.length - 1] : 0
+          acc.push(previous + segmentSeconds)
+          return acc
+        }, [])
 
       return {
         orderedMembers,
         totalDistanceMeters: route.distanceMeters ?? null,
         totalDurationSeconds: parseDurationSeconds(route.duration),
+        pickupOffsetsSeconds:
+          pickupOffsetsSeconds && pickupOffsetsSeconds.length === orderedMembers.length
+            ? pickupOffsetsSeconds
+            : null,
         encodedPolyline: route.polyline?.encodedPolyline ?? null,
         provider: 'google_routes',
         optimizationMode: 'waypoint_optimized',
@@ -368,11 +390,11 @@ async function computeGoogleOptimizedOrder(
       {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask':
-            'routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.optimizedIntermediateWaypointIndex',
-        },
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': apiKey,
+            'X-Goog-FieldMask':
+              'routes.distanceMeters,routes.duration,routes.legs.duration,routes.polyline.encodedPolyline,routes.optimizedIntermediateWaypointIndex',
+          },
         body: JSON.stringify({
           origin: pointToWaypoint(origin.lat, origin.lng),
           destination: pointToWaypoint(
@@ -413,6 +435,7 @@ async function computeGoogleOptimizedOrder(
       orderedMembers,
       totalDistanceMeters: route.distanceMeters ?? null,
       totalDurationSeconds: parseDurationSeconds(route.duration),
+      pickupOffsetsSeconds: null,
       encodedPolyline: route.polyline?.encodedPolyline ?? null,
       provider: 'google_routes',
       optimizationMode: 'waypoint_optimized',
@@ -427,6 +450,7 @@ async function computeGoogleOptimizedOrder(
       routeText: '',
       totalDistanceMeters: null,
       totalDurationSeconds: null,
+      pickupOffsetsSeconds: null,
       orderedMemberIds: [],
       orderedMemberNames: [],
       encodedPolyline: null,
@@ -438,6 +462,7 @@ async function computeGoogleOptimizedOrder(
       orderedMembers: fallback.members,
       totalDistanceMeters: fallback.totalDistanceMeters,
       totalDurationSeconds: fallback.totalDurationSeconds,
+      pickupOffsetsSeconds: fallback.pickupOffsetsSeconds,
       encodedPolyline: fallback.encodedPolyline,
       provider: fallback.provider,
       optimizationMode: fallback.optimizationMode,
@@ -468,6 +493,7 @@ export async function optimizeAssignmentRoute(
     routeText: routeStops.join(' → '),
     totalDistanceMeters: optimized.totalDistanceMeters,
     totalDurationSeconds: optimized.totalDurationSeconds,
+    pickupOffsetsSeconds: optimized.pickupOffsetsSeconds,
     orderedMemberIds: optimized.orderedMembers.map(
       (member: EventMemberRecord) => member.id
     ),

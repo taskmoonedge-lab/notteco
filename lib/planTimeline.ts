@@ -22,8 +22,16 @@ export function buildNoriaiTimeline(params: {
   vehicle: VehicleOfferRecord | null
   orderedMembers: EventMemberRecord[]
   totalDurationSeconds: number | null
+  pickupOffsetsSeconds?: number[] | null
 }): NoriaiTimeline | null {
-  const { event, eventAt, vehicle, orderedMembers, totalDurationSeconds } = params
+  const {
+    event,
+    eventAt,
+    vehicle,
+    orderedMembers,
+    totalDurationSeconds,
+    pickupOffsetsSeconds,
+  } = params
 
   if (event.case_type !== 'noriai') return null
   if (!eventAt) return null
@@ -34,11 +42,16 @@ export function buildNoriaiTimeline(params: {
   const safeDurationSeconds =
     totalDurationSeconds != null && Number.isFinite(totalDurationSeconds)
       ? Math.max(0, Math.round(totalDurationSeconds))
-      : estimateTotalDuration(event, vehicle, orderedMembers)
+      : estimateTotalDuration(event, vehicle, orderedMembers, pickupOffsetsSeconds)
 
   const departureAt = new Date(arrivalAt.getTime() - safeDurationSeconds * 1000)
 
-  const pickupDurations = estimateDurationsToEachPickup(event, vehicle, orderedMembers)
+  const pickupDurations = estimateDurationsToEachPickup(
+    event,
+    vehicle,
+    orderedMembers,
+    pickupOffsetsSeconds
+  )
   const pickupTimesByMemberId: Record<string, Date> = {}
 
   for (const pickup of pickupDurations) {
@@ -57,9 +70,15 @@ export function buildNoriaiTimeline(params: {
 function estimateTotalDuration(
   event: EventRecord,
   vehicle: VehicleOfferRecord | null,
-  orderedMembers: EventMemberRecord[]
+  orderedMembers: EventMemberRecord[],
+  pickupOffsetsSeconds?: number[] | null
 ): number {
-  const pickups = estimateDurationsToEachPickup(event, vehicle, orderedMembers)
+  const pickups = estimateDurationsToEachPickup(
+    event,
+    vehicle,
+    orderedMembers,
+    pickupOffsetsSeconds
+  )
 
   if (pickups.length === 0) {
     return 0
@@ -92,10 +111,24 @@ function estimateTotalDuration(
 function estimateDurationsToEachPickup(
   event: EventRecord,
   vehicle: VehicleOfferRecord | null,
-  orderedMembers: EventMemberRecord[]
+  orderedMembers: EventMemberRecord[],
+  pickupOffsetsSeconds?: number[] | null
 ): Array<{ member: EventMemberRecord; secondsFromDeparture: number }> {
   if (orderedMembers.length === 0) {
     return []
+  }
+
+  if (
+    Array.isArray(pickupOffsetsSeconds) &&
+    pickupOffsetsSeconds.length === orderedMembers.length &&
+    pickupOffsetsSeconds.every(
+      (seconds) => Number.isFinite(seconds) && seconds >= 0
+    )
+  ) {
+    return orderedMembers.map((member, index) => ({
+      member,
+      secondsFromDeparture: Math.round(pickupOffsetsSeconds[index] ?? 0),
+    }))
   }
 
   const origin = vehicle ? getVehicleOriginPoint(event, vehicle) : null

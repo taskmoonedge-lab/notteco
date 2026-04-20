@@ -1366,6 +1366,7 @@ export async function executePlan(formData: FormData): Promise<void> {
     route_stops: assignment.routeStops,
     total_distance_meters: assignment.totalDistanceMeters,
     total_duration_seconds: assignment.totalDurationSeconds,
+    pickup_offsets_seconds: assignment.pickupOffsetsSeconds,
     ordered_member_ids: assignment.orderedMemberIds,
     ordered_member_names: assignment.orderedMemberNames,
     encoded_polyline: assignment.encodedPolyline,
