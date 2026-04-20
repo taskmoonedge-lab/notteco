@@ -58,6 +58,17 @@ export type Assignment = {
   optimizationMode: string
 }
 
+const AFFINITY_WEIGHT_BY_CASE: Record<string, number> = {
+  noriai: 0.16,
+  sougei: 0.1,
+}
+
+const UTILIZATION_PENALTY_SCALE = 320
+
+function getAffinityWeight(caseType: string): number {
+  return AFFINITY_WEIGHT_BY_CASE[caseType] ?? 0.12
+}
+
 function buildRouteStops(
   event: EventRecord,
   vehicle: VehicleOfferRecord,
@@ -93,6 +104,7 @@ function tryRebalanceAssignments(
   assignments: Assignment[]
 ): void {
   const maxIterations = 80
+  const affinityWeight = getAffinityWeight(event.case_type)
 
   function membersKey(members: EventMemberRecord[]): string {
     return members.map((member) => member.id).join('|')
@@ -120,12 +132,20 @@ function tryRebalanceAssignments(
     nextAssignments: Assignment[],
     distanceCache: Map<string, number>
   ): number {
+    // Min-sum + min-max hybrid objective inspired by balanced VRP studies:
+    // keep total distance small while suppressing a long-tail "worst route".
     const distances = nextAssignments.map((assignment) =>
       getDistanceWithCache(distanceCache, assignment.vehicle, assignment.members)
     )
     const totalDistance = distances.reduce((sum, distance) => sum + distance, 0)
+    const totalMembers = nextAssignments.reduce(
+      (sum, assignment) => sum + assignment.members.length,
+      0
+    )
+    const averageDistance =
+      distances.length > 0 ? totalDistance / distances.length : 0
 
-    const vectorPenalty = nextAssignments.reduce((sum, assignment) => {
+    const affinityCostSum = nextAssignments.reduce((sum, assignment) => {
       const affinityCost = assignment.members.reduce(
         (memberSum, member) =>
           memberSum +
@@ -135,12 +155,44 @@ function tryRebalanceAssignments(
 
       return sum + affinityCost
     }, 0)
+    const affinityCostPerMember =
+      totalMembers > 0 ? affinityCostSum / totalMembers : 0
 
     const maxDistance = distances.length > 0 ? Math.max(...distances) : 0
     const minDistance = distances.length > 0 ? Math.min(...distances) : 0
-    const imbalancePenalty = Math.max(maxDistance - minDistance, 0) * 0.015
+    const imbalanceRatio =
+      averageDistance > 0 ? Math.max(maxDistance - minDistance, 0) / averageDistance : 0
+    const imbalancePenalty = averageDistance * imbalanceRatio * 0.25
+    const peakRoutePenalty =
+      averageDistance > 0
+        ? Math.max(maxDistance - averageDistance, 0) * 0.2
+        : 0
 
-    return totalDistance + vectorPenalty * 0.45 + imbalancePenalty
+    const utilizations = nextAssignments.map((assignment) =>
+      assignment.vehicle.capacity > 0
+        ? assignment.members.length / assignment.vehicle.capacity
+        : 0
+    )
+    const averageUtilization =
+      utilizations.length > 0
+        ? utilizations.reduce((sum, value) => sum + value, 0) / utilizations.length
+        : 0
+    const utilizationVariance =
+      utilizations.length > 0
+        ? utilizations.reduce((sum, value) => {
+            const diff = value - averageUtilization
+            return sum + diff * diff
+          }, 0) / utilizations.length
+        : 0
+    const loadBalancePenalty = averageDistance * utilizationVariance * 0.35
+
+    return (
+      totalDistance +
+      affinityCostPerMember * affinityWeight +
+      imbalancePenalty +
+      loadBalancePenalty +
+      peakRoutePenalty
+    )
   }
 
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
@@ -291,7 +343,6 @@ function tryRebalanceAssignments(
   }
 }
 
-
 export function buildSimplePlan(
   event: EventRecord,
   members: EventMemberRecord[],
@@ -313,65 +364,95 @@ export function buildSimplePlan(
     provider: 'internal',
     optimizationMode: 'improved',
   }))
+  const affinityWeight = getAffinityWeight(event.case_type)
+  const pendingMembers = [...members]
 
   const unassignedMembers: EventMemberRecord[] = []
-  const sortedMembers = [...members].sort((a, b) => {
-    const bestCostA = assignments.reduce((best, assignment) => {
-      const cost = calculateDriverMemberAffinityCost(event, assignment.vehicle, a)
-      return Math.min(best, cost)
-    }, Infinity)
+  while (pendingMembers.length > 0) {
+    // Regret-2 insertion heuristic:
+    // prioritize members whose second-best insertion is much worse than the best one,
+    // reducing the chance of painting ourselves into a corner later.
+    let selectedMemberIndex = -1
+    let selectedAssignment: Assignment | null = null
+    let selectedBestCost = Infinity
+    let selectedRegret = -Infinity
 
-    const bestCostB = assignments.reduce((best, assignment) => {
-      const cost = calculateDriverMemberAffinityCost(event, assignment.vehicle, b)
-      return Math.min(best, cost)
-    }, Infinity)
+    for (let memberIndex = 0; memberIndex < pendingMembers.length; memberIndex += 1) {
+      const member = pendingMembers[memberIndex]
+      const memberPoint = getMemberAssignPoint(event, member)
+      if (!memberPoint) {
+        unassignedMembers.push(member)
+        pendingMembers.splice(memberIndex, 1)
+        memberIndex -= 1
+        continue
+      }
 
-    return bestCostB - bestCostA
-  })
+      const insertionCandidates: Array<{
+        assignment: Assignment
+        comparableCost: number
+      }> = []
 
-  for (const member of sortedMembers) {
-    const memberPoint = getMemberAssignPoint(event, member)
-    if (!memberPoint) {
-      unassignedMembers.push(member)
-      continue
-    }
+      for (const assignment of assignments) {
+        if (assignment.members.length >= assignment.vehicle.capacity) continue
 
-    let bestAssignment: Assignment | null = null
-    let bestCost = Infinity
+        const vehicleOrigin = getVehicleOriginPoint(event, assignment.vehicle)
+        if (!vehicleOrigin) continue
 
-    for (const assignment of assignments) {
-      if (assignment.members.length >= assignment.vehicle.capacity) continue
+        const insertionCost = calculateInsertionCost(
+          event,
+          assignment.vehicle,
+          assignment.members,
+          member
+        )
+        const affinityCost = calculateDriverMemberAffinityCost(
+          event,
+          assignment.vehicle,
+          member
+        )
+        const utilizationPenalty =
+          assignment.vehicle.capacity > 0
+            ? (assignment.members.length / assignment.vehicle.capacity) *
+              UTILIZATION_PENALTY_SCALE
+            : 0
+        const comparableCost =
+          insertionCost + affinityCost * affinityWeight + utilizationPenalty
 
-      const vehicleOrigin = getVehicleOriginPoint(event, assignment.vehicle)
-      if (!vehicleOrigin) continue
+        insertionCandidates.push({
+          assignment,
+          comparableCost,
+        })
+      }
 
-      const insertionCost = calculateInsertionCost(
-        event,
-        assignment.vehicle,
-        assignment.members,
-        member
-      )
+      if (insertionCandidates.length === 0) {
+        continue
+      }
 
-      const affinityCost = calculateDriverMemberAffinityCost(
-        event,
-        assignment.vehicle,
-        member
-      )
+      insertionCandidates.sort((a, b) => a.comparableCost - b.comparableCost)
+      const best = insertionCandidates[0]
+      const secondBestCost =
+        insertionCandidates.length > 1
+          ? insertionCandidates[1].comparableCost
+          : best.comparableCost + 2_000
+      const regret = secondBestCost - best.comparableCost
 
-      const comparableCost = insertionCost + affinityCost * 0.95
-
-      if (comparableCost < bestCost) {
-        bestCost = comparableCost
-        bestAssignment = assignment
+      if (
+        regret > selectedRegret ||
+        (regret === selectedRegret && best.comparableCost < selectedBestCost)
+      ) {
+        selectedMemberIndex = memberIndex
+        selectedAssignment = best.assignment
+        selectedBestCost = best.comparableCost
+        selectedRegret = regret
       }
     }
 
-    if (!bestAssignment) {
-      unassignedMembers.push(member)
-      continue
+    if (selectedMemberIndex === -1 || !selectedAssignment) {
+      unassignedMembers.push(...pendingMembers)
+      break
     }
 
-    bestAssignment.members.push(member)
+    const [chosenMember] = pendingMembers.splice(selectedMemberIndex, 1)
+    selectedAssignment.members.push(chosenMember)
   }
 
   tryRebalanceAssignments(event, assignments)
