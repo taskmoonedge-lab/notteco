@@ -85,19 +85,6 @@ The script is loaded globally only when this variable is set.
 
 ---
 
-### 2. Render にバックエンドをデプロイ（30〜60分）
-
-> このリポジトリと別に API サービスがある前提です。まだ API がない場合は、このステップを後回しにしてフロント先行公開でもOKです。
-
-1. Render で `New Web Service` を作成し GitHub リポジトリを接続
-2. ビルド/起動コマンドを設定
-3. 環境変数を設定
-   - `DATABASE_URL`（Supabase の本番接続）
-   - `JWT_SECRET`
-   - 必要な外部 API キー
-4. デプロイ実行
-5. Render の公開URL（例: `https://xxx.onrender.com`）で疎通確認
-   - `/health` などのヘルスチェックエンドポイントを用意しておく
 
 ---
 
