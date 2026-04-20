@@ -12,7 +12,10 @@ import {
   type VehicleOfferRecord,
 } from '../lib/planner'
 import { optimizeAssignmentRoute } from '../lib/routesProvider'
-import { isUndefinedColumnError } from '../lib/supabaseErrors'
+import {
+  isUndefinedColumnError,
+  mapCreateEventErrorToNotice,
+} from '../lib/supabaseErrors'
 
 const MAX_EVENT_TITLE_LENGTH = 120
 const MAX_MEMBER_NAME_LENGTH = 80
@@ -458,16 +461,17 @@ export async function createEvent(formData: FormData): Promise<void> {
   const { data, error } = await insertEventWithLegacyCompatibility(baseEventPayload)
 
   if (error || !data?.id) {
+    const notice = mapCreateEventErrorToNotice(error)
+
     console.error('イベント作成エラー:', {
       traceId,
       code: error?.code ?? null,
       message: error?.message ?? null,
       details: (error as { details?: string | null } | null)?.details ?? null,
       hint: (error as { hint?: string | null } | null)?.hint ?? null,
+      notice,
     })
-    redirectCreateEventWithNotice(
-      'イベント作成に失敗しました。時間をおいて再度お試しください'
-    )
+    redirectCreateEventWithNotice(notice)
   }
 
   revalidatePath('/')
