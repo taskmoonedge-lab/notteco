@@ -168,13 +168,15 @@ export function calculateDriverMemberAffinityCost(
     projectionMeters > destinationMagnitude * 1.2
       ? (projectionMeters - destinationMagnitude * 1.2) * 1.4
       : 0
-  const alignmentPenalty = alignment < 0 ? Math.abs(alignment) * 7_500 : 0
+  const alignmentPenalty = alignment < 0 ? Math.abs(alignment) * 12_000 : 0
+  const directionalPenalty = (1 - Math.max(-1, Math.min(1, alignment))) * 1_800
 
   return (
     proximityCost +
-    lateralMeters * 1.25 +
-    behindPenalty +
-    overshootPenalty +
+    lateralMeters * 2.8 +
+    behindPenalty * 1.5 +
+    overshootPenalty * 1.3 +
+    directionalPenalty +
     alignmentPenalty
   )
 }
